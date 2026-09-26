@@ -1,0 +1,38 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Eye Lab"
+config/description="Vision training exercises and spatial-frequency filters, after Sinha lab's VR vision work and \"Perceive More By Seeing Less\"."
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7")
+boot_splash/bg_color=Color(1, 0.56, 0.25, 1)
+boot_splash/show_image=false
+
+[autoload]
+
+Lab="*res://autoload/lab.gd"
+Sfx="*res://autoload/sfx.gd"
+Filter="*res://autoload/filter_layer.gd"
+Iris="*res://autoload/iris.gd"
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=1000
+window/size/mode=2
+window/stretch/mode="disabled"
+
+[rendering]
+
+environment/defaults/default_clear_color=Color(0.08, 0.09, 0.11, 1)
+
+textures/vram_compression/import_etc2_astc=true

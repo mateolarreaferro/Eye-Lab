@@ -1,0 +1,19 @@
+# Build output (published as GitHub release assets instead)
+build/
+
+# Godot
+eye_lab/.godot/
+
+# Secrets
+eye_lab/autoload/iris_secrets.gd
+.env*
+iris-server/.vercel/
+
+# Node
+iris-server/node_modules/
+
+# Source material that isn't ours to publish
+*.pdf
+
+.DS_Store
+eye_lab/autoload/iris_secrets.gd.uid

@@ -569,6 +569,7 @@ script = ExtResource("1_ig7tw")
 [node name="XROrigin3D" type="XROrigin3D" parent="." unique_id=1033207768]
 
 [node name="XRCamera3D" type="XRCamera3D" parent="XROrigin3D" unique_id=807774865]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.28747463, 0.8738377, 0)
 
 [node name="XRControllerLeft" type="XRController3D" parent="XROrigin3D" unique_id=130472835]
 tracker = &"left_hand"
@@ -634,6 +635,7 @@ environment = SubResource("Environment_lts4m")
 [node name="Floor" type="StaticBody3D" parent="." unique_id=1222995564]
 
 [node name="Mesh" type="MeshInstance3D" parent="Floor" unique_id=1788946882]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4783244, 0)
 material_override = SubResource("ShaderMaterial_floor")
 mesh = SubResource("PlaneMesh_floor")
 

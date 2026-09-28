@@ -12,6 +12,8 @@
 ##   dominates. There's no eye to rebalance against, so both eyes get the
 ##   same acuity/contrast training load instead (closer to the desktop
 ##   Eye Lab app's whole-screen filter, just applied per headset eye).
+extends Node3D
+
 @export_enum("Left", "Right", "Both") var filtered_eye: int = 0
 
 ## Blur scale: 2^lod px. Higher = stronger low-frequency removal = harder task.

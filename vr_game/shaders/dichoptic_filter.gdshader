@@ -33,7 +33,9 @@ void fragment() {
 		discard;  // untreated eye: quad contributes nothing, scene shows through clean
 	}
 	vec2 uv = SCREEN_UV;
-	vec2 px = SCREEN_PIXEL_SIZE;
+	// Spatial shaders have no SCREEN_PIXEL_SIZE built-in (that's canvas_item-only);
+	// derive texel size from the screen texture itself instead.
+	vec2 px = 1.0 / vec2(textureSize(screen_tex, 0));
 	vec3 c = textureLod(screen_tex, uv, 0.0).rgb;
 	ALBEDO = vec3(0.5) + (c - blurred(uv, px)) * gain;
 }

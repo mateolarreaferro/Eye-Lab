@@ -313,7 +313,7 @@ def _next_id():
 # Kit pieces
 # ---------------------------------------------------------------------------
 def make_rowhouse(location, rotation_z=0.0, height=None, width=6.0, depth=6.0, sign=False, interior_glow=False,
-                   storefront=False, flower_box=False, vines=False):
+                   storefront=False, flower_box=False, vines=False, chimney=False, lantern=False):
     uid = _next_id()
     height = height or random.uniform(9.0, 15.0)
     wall_mat = random.choice(MAT_WALLS)
@@ -324,6 +324,17 @@ def make_rowhouse(location, rotation_z=0.0, height=None, width=6.0, depth=6.0, s
 
     ridge_h = height * random.uniform(0.35, 0.55)
     add_gable_roof(f"House_{uid}_roof", width * ROOF_OVERHANG, depth * ROOF_OVERHANG, ridge_h, (0, 0, height / 2.0), roof_mat, parent=body)
+
+    if chimney:
+        chim_x = width * 0.3
+        chim_top = height / 2.0 + ridge_h * 0.6
+        add_box(f"House_{uid}_chimney", (0.8, 0.8, 1.5), (chim_x, 0, chim_top), MAT_STONE, parent=body)
+        add_cylinder(f"House_{uid}_flue", 0.15, 0.3, (chim_x, 0, chim_top + 0.9), random.choice(MAT_ROOFS), parent=body)
+
+    if lantern:
+        lz = -height / 2.0 + height * 0.35
+        bracket = add_box(f"House_{uid}_lantern_bracket", (0.05, 0.3, 0.05), (width * 0.38, depth / 2.0 + 0.15, lz), MAT_LAMP_POLE, parent=body)
+        add_sphere(f"House_{uid}_lantern_head", 0.16, (0, 0.22, -0.05), MAT_LAMP_HEAD, parent=bracket)
 
     # one row of windows on the front (+Y) face, plus a door -- kept minimal
     # since this repeats across ~190 buildings; detail here is a real cost
@@ -524,6 +535,31 @@ def make_barrel(location):
     return barrel
 
 
+def make_laundry_line(p1, p2, height):
+    """A sagging line between two points with a few hanging fabric
+    rectangles -- approximated as 3 straight segments (a shallow V) rather
+    than a true catenary curve, which is plenty for background clutter
+    nobody examines closely."""
+    uid = _next_id()
+    mid = ((p1[0] + p2[0]) / 2.0, (p1[1] + p2[1]) / 2.0, height - 0.4)
+    p1_3d = (p1[0], p1[1], height)
+    p2_3d = (p2[0], p2[1], height)
+    for a, b in ((p1_3d, mid), (mid, p2_3d)):
+        seg_center = tuple((a[i] + b[i]) / 2.0 for i in range(3))
+        length = math.dist(a, b)
+        seg = add_cylinder(f"Laundry_{uid}_rope", 0.015, length, seg_center, MAT_LAMP_POLE)
+        direction = (b[0] - a[0], b[1] - a[1], b[2] - a[2])
+        seg.rotation_euler.x = math.atan2(math.hypot(direction[0], direction[1]), direction[2])
+        seg.rotation_euler.z = math.atan2(direction[1], direction[0])
+    for i in range(random.randint(2, 3)):
+        t = random.uniform(0.15, 0.85)
+        cx = p1_3d[0] + (p2_3d[0] - p1_3d[0]) * t
+        cy = p1_3d[1] + (p2_3d[1] - p1_3d[1]) * t
+        cz = height - 0.4 * math.sin(t * math.pi) - 0.25
+        cloth = add_box(f"Laundry_{uid}_cloth_{i}", (0.35, 0.03, 0.5), (cx, cy, cz), random.choice(MAT_SIGNS))
+        cloth.rotation_euler.z = random.uniform(-0.3, 0.3)
+
+
 def make_bollard(location):
     bollard = add_cylinder(f"Bollard_{_next_id()}", 0.12, 0.8, (location[0], location[1], 0.4), MAT_STONE)
     add_sphere("Bollard_Cap", 0.13, (0, 0, 0.42), MAT_STONE, z_scale=0.6, parent=bollard)
@@ -627,6 +663,9 @@ def make_canal():
     add_box("Canal_Water", (GRID_SPAN + 20.0, CANAL_WIDTH, 0.3), (GRID_SPAN / 2.0, center_y, -0.05), MAT_WATER)
     for side, sign in (("N", 1.0), ("S", -1.0)):
         edge_y = center_y + sign * (CANAL_WIDTH / 2.0 + 0.5)
+        # Solid, continuous for the whole canal length -- this (plus its
+        # auto-generated collision) is what stops the player stepping into
+        # the canal. Nothing below should ever put a gap in this box.
         add_box(f"Canal_Embankment_{side}", (GRID_SPAN + 20.0, 1.0, 1.2), (GRID_SPAN / 2.0, edge_y, 0.4), MAT_STONE)
         # coping stones along the top edge
         add_box(f"Canal_Coping_{side}", (GRID_SPAN + 20.0, 1.2, 0.12), (GRID_SPAN / 2.0, edge_y, 1.06), MAT_STONE)
@@ -639,6 +678,51 @@ def make_canal():
             for i in range(post_count):
                 px = i * 3.0
                 add_cylinder(f"Canal_Railing_Post_{i}", 0.03, 0.7, (px, rail_y, 1.35), MAT_LAMP_POLE)
+
+    # mooring bollards along the embankment top, between the railing posts
+    for i in range(int((GRID_SPAN + 20.0) // 12.0) + 1):
+        px = 6.0 + i * 12.0
+        make_bollard((px, center_y + CANAL_WIDTH / 2.0 + 0.5))
+
+    # 2-3 skiffs resting on the water, moored to the embankment -- purely
+    # decorative, sitting on Canal_Water which is outside the maze grid
+    boat_xs = [GRID_SPAN * 0.2, GRID_SPAN * 0.5, GRID_SPAN * 0.8]
+    for bx in boat_xs:
+        make_boat((bx, center_y + random.uniform(-1.5, 1.5)), rotation_z=random.uniform(-0.3, 0.3))
+
+    # decorative stone arch bridge at the canal's far terminus, well past
+    # the maze grid and the water itself -- scenery only, not a crossing
+    # anyone can actually reach or use
+    make_canal_arch_bridge((GRID_SPAN + 16.0, center_y))
+
+
+def make_boat(location, rotation_z=0.0):
+    uid = _next_id()
+    boat = add_box(f"Boat_{uid}_hull", (2.2, 0.8, 0.35), (location[0], location[1], -0.05), MAT_TRUNK)
+    boat.rotation_euler.z = rotation_z
+    for i in range(2):
+        add_box(f"Boat_{uid}_seat_{i}", (0.15, 0.7, 0.06), ((i - 0.5) * 0.9, 0, 0.12), MAT_TRUNK, parent=boat)
+    add_cylinder(f"Boat_{uid}_oar_0", 0.02, 1.6, (0.3, 0.5, 0.15), MAT_TRUNK, parent=boat)
+    add_cylinder(f"Boat_{uid}_oar_1", 0.02, 1.6, (-0.3, 0.5, 0.15), MAT_TRUNK, parent=boat)
+    # mooring rope: a thin angled bar from bow toward the embankment
+    rope = add_box(f"Boat_{uid}_rope", (0.03, 1.1, 0.03), (1.1, 0.6, 0.2), MAT_LAMP_POLE, parent=boat)
+    rope.rotation_euler.x = math.radians(25.0)
+    return boat
+
+
+def make_canal_arch_bridge(location):
+    """Decorative only -- placed past the canal's usable extent (see
+    make_canal), not aligned with or connected to any walkable maze path."""
+    uid = _next_id()
+    pier_h = 2.0
+    for side in (-1, 1):
+        add_box(f"Bridge_{uid}_pier_{side}", (0.8, 0.8, pier_h),
+                (location[0], location[1] + side * (CANAL_WIDTH / 2.0 + 0.5), pier_h / 2.0), MAT_STONE)
+    add_box(f"Bridge_{uid}_span", (0.8, CANAL_WIDTH + 2.0, 0.6),
+            (location[0], location[1], pier_h + 0.3), MAT_STONE)
+    for side in (-1, 1):
+        add_box(f"Bridge_{uid}_rail_{side}", (0.1, CANAL_WIDTH + 2.0, 0.5),
+                (location[0] + side * 0.4, location[1], pier_h + 0.85), MAT_STONE)
 
 
 # ---------------------------------------------------------------------------
@@ -750,6 +834,8 @@ def build_block(col, row, featured=False):
                 storefront=featured and random.random() < 0.35,
                 flower_box=random.random() < 0.25,
                 vines=random.random() < 0.2,
+                chimney=random.random() < 0.4,
+                lantern=featured and random.random() < 0.4,
             )
 
 
@@ -878,6 +964,9 @@ def build_city():
                 # front of it -- keeps the approach to each dead end clear
                 make_crate((pos[0] + 6.0, pos[1] + 3.0), rotation_z=random.uniform(0, math.tau))
                 make_barrel((pos[0] + 6.0, pos[1] - 3.0))
+                bracket = add_box(f"DeadEnd_{_next_id()}_lantern_bracket", (0.05, 0.3, 0.05),
+                                   (pos[0] - 5.5, pos[1], 2.2), MAT_LAMP_POLE)
+                add_sphere(f"{bracket.name}_head", 0.16, (0, 0.2, -0.05), MAT_LAMP_HEAD, parent=bracket)
             elif cell == fountain_cell:
                 build_block(col, row, featured=True)
                 make_fountain(pos)
@@ -894,6 +983,21 @@ def build_city():
     lx, ly = block_origin(landmark_cell[1], landmark_cell[0])
     make_cafe_patio((lx - 12.0, ly - 4.0), rotation_z=random.uniform(0, math.tau))
     make_pet_cat((lx - 11.3, ly - 3.3), rotation_z=random.uniform(0, math.tau))
+
+    # a handful of laundry lines strung across a few ordinary blocks --
+    # loosely placed (not pinned to exact rowhouse wall positions), since
+    # this is background clutter nobody examines up close
+    ordinary_cells = [
+        (r, c) for r in range(GRID_SIZE) for c in range(GRID_SIZE)
+        if (r, c) != landmark_cell and (r, c) != fountain_cell and (r, c) not in dead_ends
+    ]
+    random.shuffle(ordinary_cells)
+    for r, c in ordinary_cells[:4]:
+        bx, by = block_origin(c, r)
+        span = random.choice([(1, 0), (0, 1)])
+        p1 = (bx - span[0] * 4.0, by - span[1] * 4.0)
+        p2 = (bx + span[0] * 4.0, by + span[1] * 4.0)
+        make_laundry_line(p1, p2, height=random.uniform(6.0, 9.0))
 
     build_walls(open_e, open_n)
     scatter_props(open_e, open_n)

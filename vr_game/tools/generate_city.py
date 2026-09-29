@@ -47,6 +47,7 @@ GRID_SPAN = GRID_SIZE * STEP - STREET_WIDTH  # outer edge to outer edge
 WALL_HEIGHT = 11.0       # infill buildings that block closed maze edges
 CANAL_WIDTH = 9.0
 CANAL_GAP = 6.0          # clearance between the grid's south edge and the canal
+ROOF_OVERHANG = 1.18     # roofs extend this far past their building's footprint (eaves)
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ENV_DIR = os.path.normpath(os.path.join(SCRIPT_DIR, "..", "environment"))
@@ -82,19 +83,29 @@ def make_material(name, color, roughness=0.8, metallic=0.0, emission=None, emiss
     return mat
 
 
-# Warm European canal-town palette
+# Warm European canal-town palette. Note on texturing: glTF materials only
+# support fixed PBR channels backed by image textures, not live procedural
+# shader node graphs -- Blender's exporter can't serialize a Noise/Voronoi
+# node tree, only bake it to an image first (a real UV-unwrap + bake
+# pipeline, much bigger in scope and slow enough to fight the <60-draw-call
+# goal below). So texture "richness" here comes from more color/roughness
+# variants instead of procedural node networks -- see README for the
+# reasoning this was scoped down from.
 WALL_COLORS = [
     (0.87, 0.78, 0.55),   # cream/yellow stucco
     (0.90, 0.88, 0.82),   # off-white stucco
     (0.75, 0.55, 0.35),   # ochre
     (0.65, 0.42, 0.30),   # terracotta-brown
+    (0.80, 0.70, 0.60),   # warm grey-tan stucco
+    (0.70, 0.60, 0.42),   # muted olive-tan
 ]
 ROOF_COLORS = [
     (0.55, 0.18, 0.10),   # terracotta red
     (0.40, 0.14, 0.08),   # darker red-brown
+    (0.35, 0.30, 0.28),   # weathered slate-grey
 ]
-MAT_WALLS = [make_material(f"Wall_{i}", c, roughness=0.85) for i, c in enumerate(WALL_COLORS)]
-MAT_ROOFS = [make_material(f"Roof_{i}", c, roughness=0.75) for i, c in enumerate(ROOF_COLORS)]
+MAT_WALLS = [make_material(f"Wall_{i}", c, roughness=0.75 + 0.2 * (i % 3) / 2.0) for i, c in enumerate(WALL_COLORS)]
+MAT_ROOFS = [make_material(f"Roof_{i}", c, roughness=0.65 + 0.15 * (i % 2)) for i, c in enumerate(ROOF_COLORS)]
 MAT_WINDOW = make_material("Window", (0.65, 0.78, 0.85), roughness=0.15, emission=(0.5, 0.65, 0.75), emission_strength=0.4)
 MAT_SHUTTER = make_material("Shutter", (0.15, 0.35, 0.25), roughness=0.7)
 MAT_DOOR = make_material("Door", (0.35, 0.20, 0.10), roughness=0.6)
@@ -235,7 +246,7 @@ def make_rowhouse(location, rotation_z=0.0, height=None, width=6.0, depth=6.0, s
     body.rotation_euler.z = rotation_z
 
     ridge_h = height * random.uniform(0.35, 0.55)
-    add_gable_roof(f"House_{uid}_roof", width * 1.05, depth * 1.05, ridge_h, (0, 0, height / 2.0), roof_mat, parent=body)
+    add_gable_roof(f"House_{uid}_roof", width * ROOF_OVERHANG, depth * ROOF_OVERHANG, ridge_h, (0, 0, height / 2.0), roof_mat, parent=body)
 
     # one row of windows on the front (+Y) face, plus a door -- kept minimal
     # since this repeats across ~190 buildings; detail here is a real cost
@@ -247,6 +258,11 @@ def make_rowhouse(location, rotation_z=0.0, height=None, width=6.0, depth=6.0, s
         wx = (col - 0.5) * (width * 0.42)
         add_box(f"House_{uid}_win_{col}", (width * 0.2, 0.08, height * 0.16),
                 (wx, depth / 2.0 + 0.04, wz), win_mat, parent=body)
+        # projecting stone sill -- windows shouldn't sit perfectly flush with
+        # the wall. Cheap once merge_by_material() collapses these into the
+        # shared stone mesh, so no draw-call cost despite repeating per window.
+        add_box(f"House_{uid}_sill_{col}", (width * 0.24, 0.14, 0.06),
+                (wx, depth / 2.0 + 0.09, wz - height * 0.09), MAT_STONE, parent=body)
 
     add_box(f"House_{uid}_door", (width * 0.22, 0.1, height * 0.22),
             (0, depth / 2.0 + 0.05, -height / 2.0 + height * 0.11), MAT_DOOR, parent=body)
@@ -266,10 +282,10 @@ def make_wall_infill(center, length_axis, location_z_height=WALL_HEIGHT):
     roof_mat = random.choice(MAT_ROOFS)
     if length_axis == "x":
         size = (STREET_WIDTH, BLOCK_SIZE, location_z_height)
-        roof_w, roof_d = STREET_WIDTH * 1.05, BLOCK_SIZE * 1.05
+        roof_w, roof_d = STREET_WIDTH * ROOF_OVERHANG, BLOCK_SIZE * ROOF_OVERHANG
     else:
         size = (BLOCK_SIZE, STREET_WIDTH, location_z_height)
-        roof_w, roof_d = BLOCK_SIZE * 1.05, STREET_WIDTH * 1.05
+        roof_w, roof_d = BLOCK_SIZE * ROOF_OVERHANG, STREET_WIDTH * ROOF_OVERHANG
     body = add_box(f"Wall_{uid}", size, (center[0], center[1], location_z_height / 2.0), wall_mat)
     add_gable_roof(f"Wall_{uid}_roof", roof_w, roof_d, location_z_height * 0.3, (0, 0, location_z_height / 2.0), roof_mat, parent=body)
     return body
@@ -350,7 +366,7 @@ def make_leaning_house(location, rotation_z=0.0):
                     random.choice(MAT_WALLS))
     body.rotation_euler.z = rotation_z
     body.rotation_euler.x = math.radians(7.0)
-    add_gable_roof(f"Leaning_{uid}_roof", width * 1.05, depth * 1.05, height * 0.4, (0, 0, height / 2.0),
+    add_gable_roof(f"Leaning_{uid}_roof", width * ROOF_OVERHANG, depth * ROOF_OVERHANG, height * 0.4, (0, 0, height / 2.0),
                     random.choice(MAT_ROOFS), parent=body)
     wz = -height / 2.0 + height * 0.6
     for col in range(2):
@@ -366,7 +382,7 @@ def make_turret_house(location, rotation_z=0.0):
     body = add_box(f"Turret_{uid}", (width, depth, height), (location[0], location[1], height / 2.0),
                     random.choice(MAT_WALLS))
     body.rotation_euler.z = rotation_z
-    add_gable_roof(f"Turret_{uid}_roof", width * 1.05, depth * 1.05, height * 0.35, (0, 0, height / 2.0),
+    add_gable_roof(f"Turret_{uid}_roof", width * ROOF_OVERHANG, depth * ROOF_OVERHANG, height * 0.35, (0, 0, height / 2.0),
                     random.choice(MAT_ROOFS), parent=body)
 
     turret_h = height * 1.35
@@ -398,10 +414,20 @@ def make_clocktower(location):
 def make_canal():
     center_y = -CANAL_GAP - CANAL_WIDTH / 2.0
     add_box("Canal_Water", (GRID_SPAN + 20.0, CANAL_WIDTH, 0.3), (GRID_SPAN / 2.0, center_y, -0.05), MAT_WATER)
-    add_box("Canal_Embankment_N", (GRID_SPAN + 20.0, 1.0, 1.2),
-            (GRID_SPAN / 2.0, center_y + CANAL_WIDTH / 2.0 + 0.5, 0.4), MAT_STONE)
-    add_box("Canal_Embankment_S", (GRID_SPAN + 20.0, 1.0, 1.2),
-            (GRID_SPAN / 2.0, center_y - CANAL_WIDTH / 2.0 - 0.5, 0.4), MAT_STONE)
+    for side, sign in (("N", 1.0), ("S", -1.0)):
+        edge_y = center_y + sign * (CANAL_WIDTH / 2.0 + 0.5)
+        add_box(f"Canal_Embankment_{side}", (GRID_SPAN + 20.0, 1.0, 1.2), (GRID_SPAN / 2.0, edge_y, 0.4), MAT_STONE)
+        # coping stones along the top edge
+        add_box(f"Canal_Coping_{side}", (GRID_SPAN + 20.0, 1.2, 0.12), (GRID_SPAN / 2.0, edge_y, 1.06), MAT_STONE)
+        # low railing on the pedestrian (north) side only -- a guard rail
+        # along open water, not needed on the far bank
+        if side == "N":
+            rail_y = edge_y - 0.3
+            add_box("Canal_Railing_Bar", (GRID_SPAN + 20.0, 0.05, 0.05), (GRID_SPAN / 2.0, rail_y, 1.7), MAT_LAMP_POLE)
+            post_count = int((GRID_SPAN + 20.0) // 3.0)
+            for i in range(post_count):
+                px = i * 3.0
+                add_cylinder(f"Canal_Railing_Post_{i}", 0.03, 0.7, (px, rail_y, 1.35), MAT_LAMP_POLE)
 
 
 # ---------------------------------------------------------------------------
@@ -528,11 +554,21 @@ def build_walls(open_e, open_n):
 def build_ground():
     add_box("Ground", (GRID_SPAN + STREET_WIDTH + 30.0, GRID_SPAN + STREET_WIDTH + CANAL_GAP + CANAL_WIDTH + 20.0, 0.2),
             (GRID_SPAN / 2.0, (GRID_SPAN - CANAL_GAP - CANAL_WIDTH) / 2.0, -0.1), MAT_COBBLE)
+    curb_h = 0.15
     for col in range(GRID_SIZE):
         for row in range(GRID_SIZE):
             cx, cy = block_origin(col, row)
-            add_box(f"Sidewalk_{col}_{row}", (BLOCK_SIZE + 1.0, BLOCK_SIZE + 1.0, 0.04),
-                    (cx, cy, 0.02), MAT_SIDEWALK)
+            add_box(f"Sidewalk_{col}_{row}", (BLOCK_SIZE + 1.0, BLOCK_SIZE + 1.0, curb_h),
+                    (cx, cy, curb_h / 2.0), MAT_SIDEWALK)
+            # beveled curb strip around the raised sidewalk, between it and
+            # the street -- real sidewalks aren't flush with the road.
+            half_edge = (BLOCK_SIZE + 1.0) / 2.0
+            for nx, ny, w, d in (
+                (0, -1, BLOCK_SIZE + 1.3, 0.15), (0, 1, BLOCK_SIZE + 1.3, 0.15),
+                (-1, 0, 0.15, BLOCK_SIZE + 1.3), (1, 0, 0.15, BLOCK_SIZE + 1.3),
+            ):
+                add_box(f"Curb_{col}_{row}_{nx}_{ny}", (w, d, curb_h),
+                        (cx + nx * half_edge, cy + ny * half_edge, curb_h / 2.0), MAT_STONE)
 
 
 def scatter_props(open_e, open_n):
@@ -622,6 +658,44 @@ def build_city():
     export_maze_json(open_e, open_n, start_cell, landmark_cell)
 
 
+def merge_by_material(exclude_names=("Landmark_Beacon_Light",)):
+    """Collapses the whole city down to ~1 merged object per material, for
+    Quest draw-call count. This only works correctly if nothing depends on
+    an individual object's name/identity after this point -- which is why
+    Landmark_Beacon_Light (looked up by name at runtime by city_life.gd) is
+    excluded and kept as its own object. Everything else (spawn points,
+    the win condition, collision) is driven by city_maze.json positions or
+    generated fresh in Godot from geometry, not by per-object names, so
+    merging is safe for them.
+    """
+    # Flatten all parent/child relationships first, preserving world
+    # transform, so joining objects across different buildings (each with
+    # its own children: roof, windows, sills, door) doesn't orphan anything.
+    bpy.ops.object.select_all(action="SELECT")
+    bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
+
+    groups = {}
+    for obj in list(bpy.context.scene.objects):
+        if obj.type != "MESH" or obj.name in exclude_names or not obj.data.materials:
+            continue
+        groups.setdefault(obj.data.materials[0].name, []).append(obj)
+
+    merged_count = 0
+    for mat_name, objs in groups.items():
+        if len(objs) < 2:
+            continue
+        bpy.ops.object.select_all(action="DESELECT")
+        for o in objs:
+            o.select_set(True)
+        bpy.context.view_layer.objects.active = objs[0]
+        bpy.ops.object.join()
+        bpy.context.view_layer.objects.active.name = f"Merged_{mat_name}"
+        merged_count += 1
+
+    total_objects = sum(1 for o in bpy.context.scene.objects if o.type == "MESH")
+    print(f"merge_by_material: {merged_count} merged groups, {total_objects} total mesh objects remain")
+
+
 def export_glb(path):
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.export_scene.gltf(
@@ -635,4 +709,5 @@ def export_glb(path):
 
 if __name__ == "__main__":
     build_city()
+    merge_by_material()
     export_glb(GLB_PATH)

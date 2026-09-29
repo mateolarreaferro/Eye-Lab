@@ -75,14 +75,30 @@ blender --background --python vr_game/tools/generate_city.py
   (which edges are open, plus each cell's world position) is exported to
   `city_maze.json` alongside the geometry so gameplay code can reason about
   difficulty, not just geometry.
-- **Performance note**: the generator originally used `bpy.ops.mesh.*_add`
-  in a loop, which is dramatically slow at this object count (it hung for
-  minutes); it now builds geometry directly via `bmesh`, which is fast
-  (~7s for the whole city). Per-building detail was also deliberately kept
-  minimal (one window row, no shutters) since it repeats across ~190
-  buildings -- more detail here is a direct cost to Quest draw-call count.
-  Current output is ~1070 nodes/meshes, 1.4MB; untested on-headset for
-  actual framerate, worth checking once you can.
+- **Performance**: the generator originally used `bpy.ops.mesh.*_add` in a
+  loop, which is dramatically slow at this object count (it hung for
+  minutes); it now builds geometry directly via `bmesh` (~5-7s for the
+  whole city). It also now calls `merge_by_material()` before export,
+  which flattens all parent/child relationships and joins every mesh
+  sharing a material into one object -- this collapsed the scene from
+  ~1070 separate mesh objects down to **26 draw calls** (one merged object
+  per material, e.g. `Merged_Wall_0`, `Merged_Stone`, `Merged_Window`),
+  which is what actually matters for Quest performance, not raw geometry
+  count. This is also why per-building detail (window sills, curbs, roof
+  eave overhangs) got more generous in this pass than earlier -- once
+  merged, extra detail costs triangles, not draw calls, which is a much
+  cheaper trade on mobile GPUs. `Landmark_Beacon_Light` is explicitly
+  excluded from merging and kept as its own named object, since
+  `city_life.gd` looks it up by name at runtime.
+- **Texturing**: no baked/procedural PBR textures (Noise/Voronoi/Wave
+  shader node graphs) -- glTF materials only support fixed PBR channels
+  backed by image textures, not live procedural node graphs, so Blender's
+  exporter can't serialize those directly; doing it properly needs a full
+  UV-unwrap-and-bake pipeline, which is a much bigger, slower undertaking
+  that also fights the draw-call goal. Visual variety instead comes from
+  more color/roughness material variants (6 wall colors, 3 roof colors)
+  and small geometric details (sills, curbs, coping stones, a canal
+  railing) rather than baked textures.
 - **Points of interest**: dense per-building detail (shop signs, lit
   "interior glow" windows) is only added to a curated subset -- buildings
   near the landmark and the fountain plaza -- rather than uniformly across
@@ -143,15 +159,35 @@ end -- dichoptic per-eye filtering, locomotion, spawn/beacon win loop.
 
 The maze/collision/ambient-life rebuild went through the simulator and was
 confirmed working (per-eye filter, locomotion, spawn/beacon loop, view
-rotation). The points-of-interest pass just above (fountains, landmark
-buildings, signs, pets) has **not** been re-tested since it was added --
-regenerate (`blender --background --python tools/generate_city.py`, already
-done once here) and re-run in the simulator before trusting it's solid.
-Specifically worth checking:
+rotation). Everything since -- the points-of-interest pass (fountains,
+landmark buildings, signs, pets), the mesh-merging optimization (26 draw
+calls, verified from the exported glTF's own node count), and the Godot
+lighting/environment changes below -- has **not** been re-tested in the
+simulator. Regenerate (`blender --background --python
+vr_game/tools/generate_city.py`, already done once here) and re-run before
+trusting it's solid. Specifically worth checking:
+- That collision still works correctly now that ~1070 objects merged down
+  to 26 (the collision-generation code wasn't changed and should be
+  unaffected, but this is exactly the kind of thing that's cheap to verify
+  and expensive to assume)
 - The new landmark buildings/fountains don't clip into their block's
   regular rowhouses or block a passage they shouldn't
-- Whether the added ~10 objects hold framerate alongside everything else
-- Pets/pedestrians actually visible and moving along real open streets
+- Pets/pedestrians visible and moving along real open streets
+- **The sun's direction**: `main.tscn`'s `SunLight` rotation was hand-
+  computed (matrix math done by hand, not rendered/checked) to approximate
+  "afternoon sun" -- it's very likely close but could be off; nudge it in
+  the editor if the lighting looks wrong.
+- Whether the new Environment settings (SSAO, fog, ACES tonemapping) read
+  as intended rather than too strong/subtle -- these are also unverified
+  visually, just applied.
+
+**Skipped from the original ask**: `PhysicalSkyMaterial` with Rayleigh
+scattering (kept the existing `ProceduralSkyMaterial`, just added warm
+horizon colors -- switching sky material types is a bigger structural
+change for a scene file I can't render to check); a literal "contact
+shadows" property (couldn't confirm this exists on Godot 4's
+`DirectionalLight3D`/`Environment` API from memory, and didn't want to add
+a property that might not be real).
 
 ## Team
 

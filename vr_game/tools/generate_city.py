@@ -53,6 +53,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ENV_DIR = os.path.normpath(os.path.join(SCRIPT_DIR, "..", "environment"))
 GLB_PATH = os.path.join(ENV_DIR, "city.glb")
 MAZE_JSON_PATH = os.path.join(ENV_DIR, "city_maze.json")
+TEXTURES_DIR = os.path.join(ENV_DIR, "textures")
+TEXEL_SIZE = 2.0  # meters per texture tile; see generate_textures.py for the source images
 
 
 # ---------------------------------------------------------------------------
@@ -70,47 +72,115 @@ def clear_scene():
                 block.remove(item)
 
 
-def make_material(name, color, roughness=0.8, metallic=0.0, emission=None, emission_strength=2.0):
+def _load_texture(path, colorspace):
+    img = bpy.data.images.load(path, check_existing=True)
+    img.colorspace_settings.name = colorspace
+    return img
+
+
+def make_material(name, color, roughness=0.8, metallic=0.0, emission=None, emission_strength=2.0, texture_set=None):
+    """texture_set, if given (e.g. "stucco"), wires up real baked image
+    textures from generate_textures.py: TEXTURE_albedo/roughness/normal.png
+    -> Base Color / Roughness / Normal Map, exactly the fixed PBR channels
+    glTF actually supports (unlike Blender's own procedural shader nodes,
+    which the exporter can't serialize). `color` still applies as a tint
+    multiplied over the albedo texture via ShaderNodeVectorMath (chosen
+    over the Mix/MixRGB node specifically because its Vector-Vector-Vector
+    socket layout is stable across Blender versions, unlike Mix's
+    data-type-dependent socket indices, which I can't verify without
+    rendering).
+    """
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
-    bsdf = mat.node_tree.nodes["Principled BSDF"]
-    bsdf.inputs["Base Color"].default_value = (*color, 1.0)
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
+    bsdf = nodes["Principled BSDF"]
     bsdf.inputs["Roughness"].default_value = roughness
     bsdf.inputs["Metallic"].default_value = metallic
+
+    if texture_set:
+        albedo_img = _load_texture(os.path.join(TEXTURES_DIR, f"{texture_set}_albedo.png"), "sRGB")
+        rough_img = _load_texture(os.path.join(TEXTURES_DIR, f"{texture_set}_roughness.png"), "Non-Color")
+        normal_img = _load_texture(os.path.join(TEXTURES_DIR, f"{texture_set}_normal.png"), "Non-Color")
+
+        albedo_node = nodes.new("ShaderNodeTexImage")
+        albedo_node.image = albedo_img
+        tint_node = nodes.new("ShaderNodeVectorMath")
+        tint_node.operation = "MULTIPLY"
+        tint_node.inputs[1].default_value = (*color, )
+        links.new(albedo_node.outputs["Color"], tint_node.inputs[0])
+        links.new(tint_node.outputs["Vector"], bsdf.inputs["Base Color"])
+
+        rough_node = nodes.new("ShaderNodeTexImage")
+        rough_node.image = rough_img
+        links.new(rough_node.outputs["Color"], bsdf.inputs["Roughness"])
+
+        normal_tex_node = nodes.new("ShaderNodeTexImage")
+        normal_tex_node.image = normal_img
+        normal_map_node = nodes.new("ShaderNodeNormalMap")
+        links.new(normal_tex_node.outputs["Color"], normal_map_node.inputs["Color"])
+        links.new(normal_map_node.outputs["Normal"], bsdf.inputs["Normal"])
+    else:
+        bsdf.inputs["Base Color"].default_value = (*color, 1.0)
+
     if emission is not None:
         bsdf.inputs["Emission Color"].default_value = (*emission, 1.0)
         bsdf.inputs["Emission Strength"].default_value = emission_strength
     return mat
 
 
-# Warm European canal-town palette. Note on texturing: glTF materials only
-# support fixed PBR channels backed by image textures, not live procedural
-# shader node graphs -- Blender's exporter can't serialize a Noise/Voronoi
-# node tree, only bake it to an image first (a real UV-unwrap + bake
-# pipeline, much bigger in scope and slow enough to fight the <60-draw-call
-# goal below). So texture "richness" here comes from more color/roughness
-# variants instead of procedural node networks -- see README for the
-# reasoning this was scoped down from.
-WALL_COLORS = [
-    (0.87, 0.78, 0.55),   # cream/yellow stucco
-    (0.90, 0.88, 0.82),   # off-white stucco
-    (0.75, 0.55, 0.35),   # ochre
-    (0.65, 0.42, 0.30),   # terracotta-brown
-    (0.80, 0.70, 0.60),   # warm grey-tan stucco
-    (0.70, 0.60, 0.42),   # muted olive-tan
+def apply_box_projection_uv(bm, texel_size=TEXEL_SIZE):
+    """Box/cube-projection UVs computed directly via bmesh's UV layer API
+    (no bpy.ops.uv.cube_project -- that's an operator call, and calling
+    bpy.ops per-object in a loop of hundreds/thousands of objects is
+    exactly what made this script hang for minutes earlier; see add_box
+    etc. below). For each face, project onto the two axes perpendicular to
+    its dominant normal axis, scaled so `texel_size` meters = 1 UV tile.
+    A standard cheap approximation for game assets -- distorts on curved
+    surfaces at grazing angles (cylinder sides), which is an accepted
+    tradeoff of box mapping, not a bug.
+    """
+    bm.normal_update()
+    uv_layer = bm.loops.layers.uv.new("UVMap")
+    for face in bm.faces:
+        n = face.normal
+        ax, ay, az = abs(n.x), abs(n.y), abs(n.z)
+        for loop in face.loops:
+            co = loop.vert.co
+            if az >= ax and az >= ay:
+                u, v = co.x, co.y
+            elif ay >= ax and ay >= az:
+                u, v = co.x, co.z
+            else:
+                u, v = co.y, co.z
+            loop[uv_layer].uv = (u / texel_size, v / texel_size)
+
+
+# Warm European canal-town palette, now backed by real baked PBR image
+# textures (generate_textures.py) rather than flat colors -- glTF materials
+# only support fixed PBR channels backed by image textures, not live
+# procedural shader node graphs, so this is the actual "real texture" path;
+# see README for why baking rather than fetching from a texture site.
+# (color, texture_set) pairs -- texture_set names must match the *_albedo/
+# _roughness/_normal.png files generate_textures.py writes.
+WALL_VARIANTS = [
+    ((0.95, 0.92, 0.85), "stucco"),          # cream/yellow stucco
+    ((1.0, 0.98, 0.95), "stucco"),           # off-white stucco
+    ((0.85, 0.78, 0.65), "stucco"),          # ochre-tinted stucco
+    ((1.0, 0.85, 0.75), "brick_terracotta"),  # warm brick
+    ((0.85, 0.75, 0.7), "brick_terracotta"),  # muted brick
 ]
-ROOF_COLORS = [
-    (0.55, 0.18, 0.10),   # terracotta red
-    (0.40, 0.14, 0.08),   # darker red-brown
-    (0.35, 0.30, 0.28),   # weathered slate-grey
+ROOF_VARIANTS = [
+    ((1.0, 0.85, 0.7), "roof_tile"),
+    ((0.85, 0.7, 0.6), "roof_tile"),
 ]
-MAT_WALLS = [make_material(f"Wall_{i}", c, roughness=0.75 + 0.2 * (i % 3) / 2.0) for i, c in enumerate(WALL_COLORS)]
-MAT_ROOFS = [make_material(f"Roof_{i}", c, roughness=0.65 + 0.15 * (i % 2)) for i, c in enumerate(ROOF_COLORS)]
+MAT_WALLS = [make_material(f"Wall_{i}", c, roughness=0.85, texture_set=t) for i, (c, t) in enumerate(WALL_VARIANTS)]
+MAT_ROOFS = [make_material(f"Roof_{i}", c, roughness=0.7, texture_set=t) for i, (c, t) in enumerate(ROOF_VARIANTS)]
 MAT_WINDOW = make_material("Window", (0.65, 0.78, 0.85), roughness=0.15, emission=(0.5, 0.65, 0.75), emission_strength=0.4)
 MAT_SHUTTER = make_material("Shutter", (0.15, 0.35, 0.25), roughness=0.7)
 MAT_DOOR = make_material("Door", (0.35, 0.20, 0.10), roughness=0.6)
-MAT_STONE = make_material("Stone", (0.88, 0.85, 0.76), roughness=0.6)
-MAT_COBBLE = make_material("Cobblestone", (0.55, 0.52, 0.46), roughness=0.9)
+MAT_STONE = make_material("Stone", (1.0, 1.0, 1.0), roughness=0.6, texture_set="canal_stone")
+MAT_COBBLE = make_material("Cobblestone", (1.0, 1.0, 1.0), roughness=0.9, texture_set="cobblestone")
 MAT_SIDEWALK = make_material("Sidewalk", (0.72, 0.68, 0.6), roughness=0.8)
 MAT_WATER = make_material("Water", (0.15, 0.45, 0.5), roughness=0.1, metallic=0.2)
 MAT_LAMP_POLE = make_material("LampPole", (0.05, 0.05, 0.05), roughness=0.4, metallic=0.6)
@@ -151,6 +221,7 @@ def add_box(name, size, location, material, parent=None):
     bm = bmesh.new()
     bmesh.ops.create_cube(bm, size=1.0)
     bmesh.ops.scale(bm, verts=bm.verts, vec=size)
+    apply_box_projection_uv(bm)
     bm.to_mesh(mesh)
     bm.free()
     return _link_object(name, mesh, location, material, parent)
@@ -161,6 +232,7 @@ def add_cylinder(name, radius, depth, location, material, parent=None, vertices=
     bm = bmesh.new()
     bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=vertices,
                            radius1=radius, radius2=radius, depth=depth)
+    apply_box_projection_uv(bm)
     bm.to_mesh(mesh)
     bm.free()
     return _link_object(name, mesh, location, material, parent)
@@ -170,6 +242,7 @@ def add_sphere(name, radius, location, material, z_scale=1.0, parent=None):
     mesh = bpy.data.meshes.new(name)
     bm = bmesh.new()
     bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=6, radius=radius)
+    apply_box_projection_uv(bm)
     bm.to_mesh(mesh)
     bm.free()
     obj = _link_object(name, mesh, location, material, parent)
@@ -182,6 +255,7 @@ def add_cone(name, radius, depth, location, material, parent=None, vertices=10):
     bm = bmesh.new()
     bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=vertices,
                            radius1=radius, radius2=0.0, depth=depth)
+    apply_box_projection_uv(bm)
     bm.to_mesh(mesh)
     bm.free()
     return _link_object(name, mesh, location, material, parent)
@@ -204,6 +278,7 @@ def add_gable_roof(name, width, depth, ridge_height, location, material, rotatio
     bm.faces.new((v1, v2, r1, r0))      # east slope
     bm.faces.new((v3, v0, r0, r1))      # west slope
     bm.faces.new((v0, v3, v2, v1))      # bottom cap (cheap, avoids seeing through from below)
+    apply_box_projection_uv(bm)
     bm.to_mesh(mesh)
     bm.free()
     obj = bpy.data.objects.new(name, mesh)

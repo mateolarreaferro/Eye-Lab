@@ -90,15 +90,25 @@ blender --background --python vr_game/tools/generate_city.py
   cheaper trade on mobile GPUs. `Landmark_Beacon_Light` is explicitly
   excluded from merging and kept as its own named object, since
   `city_life.gd` looks it up by name at runtime.
-- **Texturing**: no baked/procedural PBR textures (Noise/Voronoi/Wave
-  shader node graphs) -- glTF materials only support fixed PBR channels
-  backed by image textures, not live procedural node graphs, so Blender's
-  exporter can't serialize those directly; doing it properly needs a full
-  UV-unwrap-and-bake pipeline, which is a much bigger, slower undertaking
-  that also fights the draw-call goal. Visual variety instead comes from
-  more color/roughness material variants (6 wall colors, 3 roof colors)
-  and small geometric details (sills, curbs, coping stones, a canal
-  railing) rather than baked textures.
+- **Texturing**: real baked PBR image textures, not flat colors. Blender's
+  own procedural shader nodes (Noise/Voronoi) can't be exported to glTF --
+  it only supports fixed PBR channels backed by actual image files -- so
+  `tools/generate_textures.py` synthesizes 5 seamless-tileable 1024x1024
+  texture sets (albedo/roughness/normal) with pure numpy/PIL/scipy: brick
+  coursing with real mortar joints, Voronoi-cell cobblestone and canal
+  stone, a scalloped roof-tile pattern, and grain-noise stucco. No network
+  fetch -- deterministic and reproducible by anyone re-running it, no CC0
+  license bookkeeping. UV coordinates are generated directly via bmesh's
+  UV layer API during mesh construction (box/cube projection at 2m texel
+  density) rather than `bpy.ops.uv.cube_project`, since calling any
+  `bpy.ops` per-object across hundreds of objects is exactly what made
+  this script hang for minutes earlier in its life -- see `add_box` etc.
+  `make_material(..., texture_set="stucco")` wires the images into
+  Base Color / Roughness / Normal, with the existing WALL_COLORS/
+  ROOF_COLORS still applied as a tint multiplied over the albedo texture.
+  Run `python3 vr_game/tools/generate_textures.py` once before
+  `generate_city.py` if textures need regenerating (they're committed to
+  the repo, so this is only needed if you're changing them).
 - **Points of interest**: dense per-building detail (shop signs, lit
   "interior glow" windows) is only added to a curated subset -- buildings
   near the landmark and the fountain plaza -- rather than uniformly across
@@ -188,6 +198,22 @@ change for a scene file I can't render to check); a literal "contact
 shadows" property (couldn't confirm this exists on Godot 4's
 `DirectionalLight3D`/`Environment` API from memory, and didn't want to add
 a property that might not be real).
+
+**Real baked PBR textures added** (`tools/generate_textures.py` +
+`generate_city.py` UV/material updates): verified from the CLI --
+9 of the city's 24 materials carry actual `baseColorTexture`/
+`normalTexture`/`metallicRoughnessTexture` bindings in the exported
+glTF's own JSON, file grew to 5.0MB (texture payload, as expected),
+draw calls stayed at 24. Genuinely not yet checked: what the UV/texel
+density actually looks like on real geometry -- box-projection UVs are a
+known-cheap technique but I can't see whether stretching/seams are
+noticeable without rendering it. Also bumped `SunLight`'s
+`directional_shadow_mode` from ORTHOGONAL to `PSSM_2_SPLITS` so the
+requested `directional_shadow_split_1`/`directional_shadow_blend_splits`
+properties actually do something (they're inert under ORTHOGONAL mode) --
+this wasn't explicitly asked for, it's an inference to make the other two
+properties non-dead, and cascaded shadows cost a bit more GPU time than
+a single shadow map, worth knowing if Quest framerate is tight.
 
 ## Team
 

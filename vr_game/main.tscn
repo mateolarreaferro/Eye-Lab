@@ -485,7 +485,8 @@ reflected_light_source = 2
 tonemap_mode = 3
 ssao_enabled = true
 ssao_radius = 1.5
-ssao_intensity = 1.2
+ssao_intensity = 2.0
+ssao_power = 1.5
 fog_enabled = true
 fog_light_color = Color(0.75, 0.8, 0.85, 1)
 fog_depth_begin = 25.0
@@ -748,7 +749,9 @@ shadow_enabled = true
 shadow_bias = 0.03
 shadow_normal_bias = 1.0
 shadow_blur = 1.5
-directional_shadow_mode = 0
+directional_shadow_mode = 1
+directional_shadow_split_1 = 0.1
+directional_shadow_blend_splits = true
 directional_shadow_max_distance = 12.0
 
 [node name="Passthrough" type="Node" parent="." unique_id=1290157622]

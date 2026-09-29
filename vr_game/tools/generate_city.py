@@ -196,8 +196,9 @@ SIGN_COLORS = [
     (0.6, 0.1, 0.1), (0.1, 0.35, 0.2), (0.15, 0.2, 0.5), (0.55, 0.4, 0.05),
 ]
 MAT_SIGNS = [make_material(f"Sign_{i}", c, roughness=0.6) for i, c in enumerate(SIGN_COLORS)]
-PET_COLORS = [(0.35, 0.22, 0.1), (0.85, 0.85, 0.82), (0.15, 0.15, 0.15)]
+PET_COLORS = [(0.35, 0.22, 0.1), (0.85, 0.85, 0.82)]  # dog (brown), cat (cream) -- kept to 2, not 3, to save a draw call
 MAT_PETS = [make_material(f"Pet_{i}", c, roughness=0.8) for i, c in enumerate(PET_COLORS)]
+MAT_BLOOM = make_material("Bloom", (0.85, 0.22, 0.32), roughness=0.55)  # flower-box blooms
 
 
 def _link_object(name, mesh, location, material, parent=None):
@@ -311,7 +312,8 @@ def _next_id():
 # ---------------------------------------------------------------------------
 # Kit pieces
 # ---------------------------------------------------------------------------
-def make_rowhouse(location, rotation_z=0.0, height=None, width=6.0, depth=6.0, sign=False, interior_glow=False):
+def make_rowhouse(location, rotation_z=0.0, height=None, width=6.0, depth=6.0, sign=False, interior_glow=False,
+                   storefront=False, flower_box=False, vines=False):
     uid = _next_id()
     height = height or random.uniform(9.0, 15.0)
     wall_mat = random.choice(MAT_WALLS)
@@ -325,29 +327,99 @@ def make_rowhouse(location, rotation_z=0.0, height=None, width=6.0, depth=6.0, s
 
     # one row of windows on the front (+Y) face, plus a door -- kept minimal
     # since this repeats across ~190 buildings; detail here is a real cost
-    # to draw-call count on Quest. interior_glow/sign are opt-in per call,
-    # used only for a curated subset of "points of interest" buildings.
+    # to draw-call count on Quest. interior_glow/sign/storefront/flower_box/
+    # vines are opt-in per call, used only for a curated subset of
+    # "points of interest" buildings -- everything still funnels through
+    # add_box/add_cylinder/add_sphere, so it's swept into merge_by_material()
+    # automatically with no special-casing needed there.
     wz = -height / 2.0 + height * 0.62
     win_mat = MAT_INTERIOR_GLOW if interior_glow else MAT_WINDOW
     for col in range(2):
         wx = (col - 0.5) * (width * 0.42)
         add_box(f"House_{uid}_win_{col}", (width * 0.2, 0.08, height * 0.16),
                 (wx, depth / 2.0 + 0.04, wz), win_mat, parent=body)
-        # projecting stone sill -- windows shouldn't sit perfectly flush with
-        # the wall. Cheap once merge_by_material() collapses these into the
-        # shared stone mesh, so no draw-call cost despite repeating per window.
-        add_box(f"House_{uid}_sill_{col}", (width * 0.24, 0.14, 0.06),
-                (wx, depth / 2.0 + 0.09, wz - height * 0.09), MAT_STONE, parent=body)
+        if flower_box:
+            # small planter beneath the window with a couple of bloom accents
+            add_box(f"House_{uid}_flowerbox_{col}", (width * 0.22, 0.16, 0.1),
+                    (wx, depth / 2.0 + 0.12, wz - height * 0.1), MAT_STONE, parent=body)
+            for b in range(3):
+                bx = wx + (b - 1) * width * 0.06
+                add_sphere(f"House_{uid}_bloom_{col}_{b}", 0.06,
+                           (bx, depth / 2.0 + 0.18, wz - height * 0.06), MAT_BLOOM, parent=body)
+        else:
+            # projecting stone sill -- windows shouldn't sit perfectly flush
+            # with the wall.
+            add_box(f"House_{uid}_sill_{col}", (width * 0.24, 0.14, 0.06),
+                    (wx, depth / 2.0 + 0.09, wz - height * 0.09), MAT_STONE, parent=body)
 
-    add_box(f"House_{uid}_door", (width * 0.22, 0.1, height * 0.22),
-            (0, depth / 2.0 + 0.05, -height / 2.0 + height * 0.11), MAT_DOOR, parent=body)
+    if storefront:
+        # ground-floor commercial front: recessed display glass with a warm
+        # interior backdrop (illusion of depth/an illuminated shop, not an
+        # actual explorable interior -- see README on why full interiors
+        # were scoped out), a fabric awning, and a door with a glass pane.
+        door_z = -height / 2.0 + height * 0.13
+        disp_w = width * 0.32
+        disp_z = -height / 2.0 + height * 0.16
+        disp_x = width * 0.28
+        # recessed frame at the wall surface, glazing set back 0.15m, and a
+        # warm backdrop plane further back still for the "lit interior" look
+        add_box(f"House_{uid}_storewin_frame", (disp_w * 1.1, 0.06, height * 0.26),
+                (disp_x, depth / 2.0 + 0.03, disp_z), MAT_DOOR, parent=body)
+        add_box(f"House_{uid}_storewin_glass", (disp_w, 0.05, height * 0.22),
+                (disp_x, depth / 2.0 - 0.06, disp_z), MAT_WINDOW, parent=body)
+        add_box(f"House_{uid}_storewin_interior", (disp_w * 0.9, 0.04, height * 0.18),
+                (disp_x, depth / 2.0 - 0.16, disp_z), MAT_INTERIOR_GLOW, parent=body)
+
+        awning_mat = random.choice(MAT_SIGNS)
+        awning = add_box(f"House_{uid}_awning", (width * 0.85, 0.9, 0.06),
+                          (0, depth / 2.0 + 0.45, door_z + height * 0.14), awning_mat, parent=body)
+        awning.rotation_euler.x = math.radians(-18.0)  # angled outward over the sidewalk
+        for s in range(3):
+            sx = -width * 0.3 + s * width * 0.3
+            add_box(f"House_{uid}_awning_stripe_{s}", (width * 0.12, 0.92, 0.07),
+                    (sx, depth / 2.0 + 0.45, door_z + height * 0.14), MAT_DOOR, parent=awning)
+
+        add_box(f"House_{uid}_storedoor", (width * 0.2, 0.1, height * 0.24),
+                (-width * 0.22, depth / 2.0 + 0.05, door_z), MAT_DOOR, parent=body)
+        add_box(f"House_{uid}_storedoor_glass", (width * 0.13, 0.1, height * 0.15),
+                (-width * 0.22, depth / 2.0 + 0.09, door_z + height * 0.02), MAT_WINDOW, parent=body)
+    else:
+        add_box(f"House_{uid}_door", (width * 0.22, 0.1, height * 0.22),
+                (0, depth / 2.0 + 0.05, -height / 2.0 + height * 0.11), MAT_DOOR, parent=body)
+
+    if vines:
+        # a couple of flat foliage patches climbing the lower wall, offset
+        # outward slightly to avoid z-fighting with the wall face
+        for v in range(2):
+            vx = (v - 0.5) * width * 0.55
+            vh = random.uniform(2.0, 4.0)
+            add_box(f"House_{uid}_vine_{v}", (width * 0.16, 0.03, vh),
+                    (vx, depth / 2.0 + 0.02, -height / 2.0 + vh / 2.0), MAT_FOLIAGE, parent=body)
 
     if sign:
         sign_mat = random.choice(MAT_SIGNS)
         pole_z = -height / 2.0 + height * 0.3
         add_cylinder(f"House_{uid}_signpole", 0.04, 0.6, (0, depth / 2.0 + 0.3, pole_z), MAT_LAMP_POLE, parent=body)
-        add_box(f"House_{uid}_signboard", (1.0, 0.06, 0.6), (0, depth / 2.0 + 0.35, pole_z + 0.35), sign_mat, parent=body)
+        board = add_box(f"House_{uid}_signboard", (1.0, 0.06, 0.6), (0, depth / 2.0 + 0.35, pole_z + 0.35), sign_mat, parent=body)
+        _add_sign_icon(board, uid)
     return body
+
+
+def _add_sign_icon(board, uid):
+    """A small silhouette shape on a hanging sign -- mug/book/loaf/scissors,
+    a cheap stand-in for a real icon glyph. Dark wrought-iron-ish color."""
+    icon = random.choice(("mug", "book", "loaf", "scissors"))
+    if icon == "mug":
+        add_cylinder(f"House_{uid}_icon", 0.14, 0.2, (0, -0.04, 0), MAT_LAMP_POLE, parent=board)
+    elif icon == "book":
+        add_box(f"House_{uid}_icon", (0.3, 0.03, 0.2), (0, -0.04, 0), MAT_LAMP_POLE, parent=board)
+    elif icon == "loaf":
+        add_sphere(f"House_{uid}_icon", 0.16, (0, -0.04, 0), MAT_LAMP_POLE, z_scale=0.6, parent=board)
+    else:
+        a = add_box(f"House_{uid}_icon_a", (0.28, 0.02, 0.05), (0, -0.04, 0), MAT_LAMP_POLE, parent=board)
+        a.rotation_euler.y = math.radians(30.0)
+        b = add_box(f"House_{uid}_icon_b", (0.28, 0.02, 0.05), (0, -0.04, 0), MAT_LAMP_POLE, parent=board)
+        b.rotation_euler.y = math.radians(-30.0)
 
 
 def make_wall_infill(center, length_axis, location_z_height=WALL_HEIGHT):
@@ -389,9 +461,73 @@ def make_lamp_post(location):
 
 
 def make_tree(location):
-    trunk = add_cylinder("TreeTrunk", 0.15, 2.0, (location[0], location[1], 1.0), MAT_TRUNK)
-    add_sphere("TreeFoliage", 1.4, (0, 0, 1.8), MAT_FOLIAGE, parent=trunk)
+    total_h = random.uniform(3.0, 5.0)
+    trunk_h = total_h * 0.45
+    trunk = add_cylinder("TreeTrunk", 0.15, trunk_h, (location[0], location[1], trunk_h / 2.0), MAT_TRUNK)
+    canopy_base = trunk_h * 0.6
+    for i in range(random.randint(2, 3)):
+        r = random.uniform(0.9, 1.3)
+        add_sphere(f"TreeFoliage_{i}", r,
+                   (random.uniform(-0.4, 0.4), random.uniform(-0.4, 0.4), canopy_base + random.uniform(0.3, 0.9)),
+                   MAT_FOLIAGE, z_scale=random.uniform(0.8, 1.1), parent=trunk)
     return trunk
+
+
+def make_cafe_patio(location, rotation_z=0.0):
+    """1 bistro table + 2 chairs + cups, for a plaza/landmark-adjacent
+    sidewalk -- see build_city() for placement, kept off the open street."""
+    anchor = add_empty(f"CafePatio_{_next_id()}", (location[0], location[1], 0.0))
+    anchor.rotation_euler.z = rotation_z
+
+    add_cylinder("CafeTable_Leg", 0.05, 0.7, (0, 0, 0.35), MAT_LAMP_POLE, parent=anchor)
+    add_cylinder("CafeTable_Top", 0.35, 0.04, (0, 0, 0.72), MAT_BENCH, parent=anchor)
+    for c, (cx, cy) in enumerate(((0.5, 0.0), (-0.5, 0.0))):
+        chair = add_box(f"CafeChair_{c}_seat", (0.4, 0.4, 0.05), (cx, cy, 0.45), MAT_BENCH, parent=anchor)
+        chair.rotation_euler.z = math.pi if cx > 0 else 0.0
+        add_box(f"CafeChair_{c}_back", (0.4, 0.05, 0.5), (0, 0.18, 0.25), MAT_BENCH, parent=chair)
+        for lx, ly in ((0.17, 0.17), (0.17, -0.17), (-0.17, 0.17), (-0.17, -0.17)):
+            add_cylinder(f"CafeChair_{c}_leg_{lx}_{ly}", 0.02, 0.45, (lx, ly, -0.225), MAT_LAMP_POLE, parent=chair)
+    add_cylinder("CafeCup_0", 0.05, 0.08, (0.1, 0.05, 0.78), MAT_INTERIOR_GLOW, parent=anchor)
+    add_cylinder("CafeCup_1", 0.05, 0.08, (-0.08, -0.06, 0.78), MAT_INTERIOR_GLOW, parent=anchor)
+    return anchor
+
+
+def make_pet_dog(location, rotation_z=0.0):
+    body = add_sphere(f"Pet_{_next_id()}", 0.22, (location[0], location[1], 0.22), MAT_PETS[0], z_scale=0.75)
+    body.rotation_euler.z = rotation_z
+    add_sphere("PetHead", 0.14, (0.22, 0, 0.06), MAT_PETS[0], parent=body)
+    add_cone("PetTail", 0.05, 0.2, (-0.22, 0, 0.05), MAT_PETS[0], parent=body, vertices=6)
+    return body
+
+
+def make_pet_cat(location, rotation_z=0.0):
+    """Curled/sitting silhouette -- a squashed sphere reads fine at a
+    glance and is far cheaper than a posed body."""
+    body = add_sphere(f"Pet_{_next_id()}", 0.16, (location[0], location[1], 0.14), MAT_PETS[1], z_scale=0.65)
+    body.rotation_euler.z = rotation_z
+    add_sphere("PetHead", 0.1, (0.13, 0.05, 0.06), MAT_PETS[1], parent=body)
+    add_cone("PetEar_0", 0.03, 0.06, (0.16, 0.09, 0.13), MAT_PETS[1], parent=body, vertices=4)
+    add_cone("PetEar_1", 0.03, 0.06, (0.16, 0.01, 0.13), MAT_PETS[1], parent=body, vertices=4)
+    return body
+
+
+def make_crate(location, rotation_z=0.0):
+    crate = add_box(f"Crate_{_next_id()}", (0.6, 0.6, 0.6), (location[0], location[1], 0.3), MAT_TRUNK)
+    crate.rotation_euler.z = rotation_z
+    return crate
+
+
+def make_barrel(location):
+    barrel = add_cylinder(f"Barrel_{_next_id()}", 0.3, 0.7, (location[0], location[1], 0.35), MAT_TRUNK)
+    add_cylinder("Barrel_HoopTop", 0.31, 0.05, (0, 0, 0.22), MAT_LAMP_POLE, parent=barrel)
+    add_cylinder("Barrel_HoopBottom", 0.31, 0.05, (0, 0, -0.22), MAT_LAMP_POLE, parent=barrel)
+    return barrel
+
+
+def make_bollard(location):
+    bollard = add_cylinder(f"Bollard_{_next_id()}", 0.12, 0.8, (location[0], location[1], 0.4), MAT_STONE)
+    add_sphere("Bollard_Cap", 0.13, (0, 0, 0.42), MAT_STONE, z_scale=0.6, parent=bollard)
+    return bollard
 
 
 def make_fountain(location):
@@ -611,6 +747,9 @@ def build_block(col, row, featured=False):
                 (x, y), rotation_z=rot, width=spacing - 0.5,
                 sign=featured and random.random() < 0.5,
                 interior_glow=featured and random.random() < 0.3,
+                storefront=featured and random.random() < 0.35,
+                flower_box=random.random() < 0.25,
+                vines=random.random() < 0.2,
             )
 
 
@@ -644,6 +783,23 @@ def build_ground():
             ):
                 add_box(f"Curb_{col}_{row}_{nx}_{ny}", (w, d, curb_h),
                         (cx + nx * half_edge, cy + ny * half_edge, curb_h / 2.0), MAT_STONE)
+
+
+def scatter_canal_clutter():
+    """Crates/barrels along the canal's pedestrian embankment -- the canal
+    sits outside the maze grid entirely (see make_canal), so this can't
+    obstruct a maze path by construction."""
+    center_y = -CANAL_GAP - CANAL_WIDTH / 2.0
+    edge_y = center_y + (CANAL_WIDTH / 2.0 + 0.5) - 1.3  # just inside the railing, on the walkway
+    spacing = 9.0
+    n = int((GRID_SPAN + 20.0) // spacing)
+    for i in range(n + 1):
+        x = i * spacing
+        roll = random.random()
+        if roll < 0.3:
+            make_crate((x, edge_y), rotation_z=random.uniform(0, math.tau))
+        elif roll < 0.5:
+            make_barrel((x, edge_y))
 
 
 def scatter_props(open_e, open_n):
@@ -718,18 +874,30 @@ def build_city():
                     builder(pos)
                 else:
                     builder(pos, rotation_z=random.uniform(0.0, math.tau))
+                # street clutter tucked beside the landmark building, not in
+                # front of it -- keeps the approach to each dead end clear
+                make_crate((pos[0] + 6.0, pos[1] + 3.0), rotation_z=random.uniform(0, math.tau))
+                make_barrel((pos[0] + 6.0, pos[1] - 3.0))
             elif cell == fountain_cell:
                 build_block(col, row, featured=True)
                 make_fountain(pos)
                 make_bench((pos[0] + 2.5, pos[1] + 2.5), rotation_z=math.pi / 4.0)
                 make_bench((pos[0] - 2.5, pos[1] - 2.5), rotation_z=math.pi / 4.0)
+                make_cafe_patio((pos[0] - 4.0, pos[1] + 4.0), rotation_z=random.uniform(0, math.tau))
+                make_pet_dog((pos[0] - 3.3, pos[1] + 3.3), rotation_z=random.uniform(0, math.tau))
             else:
                 near_poi = cell in [(landmark_cell[0] + dr, landmark_cell[1] + dc)
                                      for dr in (-1, 0, 1) for dc in (-1, 0, 1)]
                 build_block(col, row, featured=near_poi)
 
+    # a second cafe patio and a resting cat near the landmark plaza
+    lx, ly = block_origin(landmark_cell[1], landmark_cell[0])
+    make_cafe_patio((lx - 12.0, ly - 4.0), rotation_z=random.uniform(0, math.tau))
+    make_pet_cat((lx - 11.3, ly - 3.3), rotation_z=random.uniform(0, math.tau))
+
     build_walls(open_e, open_n)
     scatter_props(open_e, open_n)
+    scatter_canal_clutter()
     export_maze_json(open_e, open_n, start_cell, landmark_cell)
 
 

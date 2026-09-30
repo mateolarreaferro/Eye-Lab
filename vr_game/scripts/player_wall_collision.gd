@@ -1,21 +1,38 @@
-## Autoload singleton. Simple push-out collision so the player actually
-## can't walk through the maze's buildings/walls. The template's locomotion
-## script (xr_move.gd) moves the XROrigin3D's position directly with no
-## physics query, so without this, the maze would be walk-through and not
-## a real maze -- this is what makes the maze topology actually matter.
+## Autoload singleton. Makes the maze's buildings/walls solid. The template's
+## locomotion (xr_move.gd) and the desktop player move the XROrigin3D's
+## position directly with no physics query, so this runs after them every
+## frame and replays that frame's movement through a CharacterBody3D with
+## move_and_slide(): walls stop you and you glide along them, instead of
+## being shoved back out after walking in.
+##
+## The capsule starts `step_clearance` above the ground so the floor, curbs
+## and cobbles never register as walls. Jumps longer than `teleport_distance`
+## (a new round's respawn) are taken as-is, not collided.
 extends Node3D
 
-@export var radius := 0.35
-@export var height := 1.7
-@export var max_push_per_frame := 0.3  ## meters; clamps any single-frame correction
+@export var radius := 0.3
+@export var height := 1.4
+@export var step_clearance := 0.35       ## metres of ground clutter the body ignores
+@export var teleport_distance := 3.0     ## metres; longer single-frame moves are respawns
 
 var _origin: XROrigin3D
-var _shape := CapsuleShape3D.new()
+var _body := CharacterBody3D.new()
+var _resolved := Vector3.INF             ## where collision last left the origin
 
 
 func _ready() -> void:
-	_shape.radius = radius
-	_shape.height = height
+	process_priority = 1000  # after every locomotion script's _process
+	var shape := CapsuleShape3D.new()
+	shape.radius = radius
+	shape.height = height
+	var collider := CollisionShape3D.new()
+	collider.shape = shape
+	collider.position.y = step_clearance + height / 2.0
+	_body.add_child(collider)
+	_body.motion_mode = CharacterBody3D.MOTION_MODE_FLOATING
+	_body.wall_min_slide_angle = 0.0
+	_body.top_level = true
+	add_child(_body)
 	call_deferred("_find_origin")
 
 
@@ -27,29 +44,23 @@ func _find_origin() -> void:
 	_origin = camera.get_parent() as XROrigin3D
 
 
-func _physics_process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if _origin == null:
 		return
-
-	var space := get_world_3d().direct_space_state
-	var params := PhysicsShapeQueryParameters3D.new()
-	params.shape = _shape
-	params.transform = Transform3D(Basis.IDENTITY, _origin.global_position + Vector3(0, height / 2.0, 0))
-	params.collide_with_bodies = true
-	params.collide_with_areas = false
-
-	var contacts := space.collide_shape(params, 8)
-	if contacts.is_empty():
+	var wanted := _origin.global_position
+	if _resolved == Vector3.INF or wanted.distance_to(_resolved) > teleport_distance:
+		_resolved = wanted
 		return
 
-	var push := Vector3.ZERO
-	var i := 0
-	while i + 1 < contacts.size():
-		var point_on_player: Vector3 = contacts[i]
-		var point_on_obstacle: Vector3 = contacts[i + 1]
-		push += point_on_player - point_on_obstacle
-		i += 2
-
-	push.y = 0.0
-	if push.length() > 0.001:
-		_origin.global_position += push.limit_length(max_push_per_frame)
+	var motion := wanted - _resolved
+	motion.y = 0.0
+	if motion.length_squared() < 1e-10:
+		return
+	_body.global_position = Vector3(_resolved.x, wanted.y, _resolved.z)
+	# Called from _process, move_and_slide() scales velocity by this frame's
+	# delta, so this velocity covers exactly this frame's movement.
+	_body.velocity = motion / delta
+	_body.move_and_slide()
+	_body.velocity = Vector3.ZERO
+	_resolved = Vector3(_body.global_position.x, wanted.y, _body.global_position.z)
+	_origin.global_position = _resolved

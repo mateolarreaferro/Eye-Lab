@@ -450,6 +450,7 @@ def make_wall_infill(center, length_axis, location_z_height=WALL_HEIGHT):
 
 
 def make_landmark_dome(location):
+    AUDIO_ANCHORS["landmark"].append([location[0], location[1], 12.0])
     drum_radius = 9.0
     drum_height = 7.0
     drum = add_cylinder("Landmark_Drum", drum_radius, drum_height,
@@ -488,6 +489,7 @@ def make_cafe_patio(location, rotation_z=0.0):
     """1 bistro table + 2 chairs + cups, for a plaza/landmark-adjacent
     sidewalk -- see build_city() for placement, kept off the open street."""
     anchor = add_empty(f"CafePatio_{_next_id()}", (location[0], location[1], 0.0))
+    AUDIO_ANCHORS["terraces"].append([location[0], location[1], 1.0])
     anchor.rotation_euler.z = rotation_z
 
     add_cylinder("CafeTable_Leg", 0.05, 0.7, (0, 0, 0.35), MAT_LAMP_POLE, parent=anchor)
@@ -566,7 +568,15 @@ def make_bollard(location):
     return bollard
 
 
+# Where the SATIE audio world places its emitters, in Blender coordinates
+# (x, y, height). Exported with the maze graph because merge_by_material()
+# erases per-object names. Collecting these must never consume random numbers:
+# the city layout depends on the exact random sequence.
+AUDIO_ANCHORS = {"canal": [], "fountains": [], "terraces": [], "clocktowers": [], "landmark": []}
+
+
 def make_fountain(location):
+    AUDIO_ANCHORS["fountains"].append([location[0], location[1], 1.3])
     add_cylinder("Fountain_Base", 2.2, 0.6, (location[0], location[1], 0.3), MAT_STONE)
     add_cylinder("Fountain_Water", 1.9, 0.1, (location[0], location[1], 0.62), MAT_WATER)
     add_cylinder("Fountain_Spout", 0.25, 1.4, (location[0], location[1], 1.3), MAT_STONE)
@@ -642,6 +652,7 @@ def make_turret_house(location, rotation_z=0.0):
 def make_clocktower(location):
     uid = _next_id()
     height = 20.0
+    AUDIO_ANCHORS["clocktowers"].append([location[0], location[1], height * 0.8])
     width = 5.0
     body = add_box(f"Clocktower_{uid}", (width, width, height), (location[0], location[1], height / 2.0),
                     MAT_STONE)
@@ -661,6 +672,9 @@ def make_clocktower(location):
 def make_canal():
     center_y = -CANAL_GAP - CANAL_WIDTH / 2.0
     add_box("Canal_Water", (GRID_SPAN + 20.0, CANAL_WIDTH, 0.3), (GRID_SPAN / 2.0, center_y, -0.05), MAT_WATER)
+    # Five water emitters spread along the canal's length.
+    for i in range(5):
+        AUDIO_ANCHORS["canal"].append([-10.0 + i * (GRID_SPAN + 20.0) / 4.0, center_y, 0.3])
     for side, sign in (("N", 1.0), ("S", -1.0)):
         edge_y = center_y + sign * (CANAL_WIDTH / 2.0 + 0.5)
         # Solid, continuous for the whole canal length -- this (plus its
@@ -914,6 +928,7 @@ def export_maze_json(open_e, open_n, start_cell, landmark_cell):
         "open_n": open_n,
         "start_cell": list(start_cell),
         "landmark_cell": list(landmark_cell),
+        "audio_anchors": AUDIO_ANCHORS,
     }
     os.makedirs(ENV_DIR, exist_ok=True)
     with open(MAZE_JSON_PATH, "w") as f:

@@ -21,6 +21,7 @@ DichopticFilter="*res://scripts/dichoptic_filter.gd"
 VisionQuestGame="*res://scripts/vision_quest_game.gd"
 PlayerWallCollision="*res://scripts/player_wall_collision.gd"
 CityLife="*res://scripts/city_life.gd"
+CityAudio="*res://scripts/city_audio.gd"
 
 [display]
 

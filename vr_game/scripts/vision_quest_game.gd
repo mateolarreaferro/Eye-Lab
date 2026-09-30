@@ -10,6 +10,9 @@
 ## that script to tweak layout/regenerate).
 extends Node3D
 
+signal round_started(spawn: Vector3, target: Vector3)
+signal target_reached(target: Vector3)
+
 @export var win_distance := 2.0   ## meters; how close counts as "arrived"
 @export var respawn_delay := 2.0  ## seconds to pause before the next round
 
@@ -60,6 +63,7 @@ func _process(_delta: float) -> void:
 func _on_target_reached() -> void:
 	_round_active = false
 	print("VisionQuestGame|INFO: target reached!")
+	target_reached.emit(_target_position)
 	await get_tree().create_timer(respawn_delay).timeout
 	_new_round()
 
@@ -165,6 +169,7 @@ func _new_round() -> void:
 	_target_position = target
 	_place_beacon(target)
 	_round_active = true
+	round_started.emit(spawn, target)
 	print("VisionQuestGame|INFO: new round. spawn_cell=%s target_cell=%s maze_distance=%d" %
 		[spawn_cell, target_cell, dist[target_cell]])
 

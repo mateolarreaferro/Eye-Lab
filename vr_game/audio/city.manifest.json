@@ -1,0 +1,620 @@
+{
+  "schema": "satie.portable.bundle/1",
+  "profile": "satie.portable.stereo/1",
+  "abi": 1,
+  "bundleSha256": "4a8c9240d07679c92ccb332744fb07c84f02a7bf87144af3c68d70212b29ca16",
+  "scriptSha256": "1f38e3b71c6a97b0ec8979ef3d3c2b2ee79ba12b2e53c833dd95a81b28bb844d",
+  "sampleRate": 44100,
+  "seed": 11,
+  "assets": [
+    {
+      "name": "assets/town_air.wav",
+      "sha256": "12c14052a0c4844301f87057e1590ba57a9354df5cad640b79093a6a0e6ae723",
+      "frames": 970200,
+      "channels": 2
+    },
+    {
+      "name": "assets/canal_a.wav",
+      "sha256": "87a6eebeb283b719cf1aa54608115a52c296b724ab249bbea76d39b2ddf78cb8",
+      "frames": 882000,
+      "channels": 1
+    },
+    {
+      "name": "assets/canal_b.wav",
+      "sha256": "c9f13ac39d262b590aa28003216869a6fc74a416009d76280ed7f97974156c60",
+      "frames": 882000,
+      "channels": 1
+    },
+    {
+      "name": "assets/fountain.wav",
+      "sha256": "f1f1cd6040dd4ad78a15b05fe7e9d8a1acff3d85c4d2d305c05d71df121b4784",
+      "frames": 793800,
+      "channels": 1
+    },
+    {
+      "name": "assets/terrace.wav",
+      "sha256": "cdba91ce8369b8944edbfd1b966fb8448b13f1bf007c0901cadffa1ec9ed43a1",
+      "frames": 882000,
+      "channels": 1
+    },
+    {
+      "name": "assets/step_0.wav",
+      "sha256": "ffecabd625952517bfffd6acfd5b6b70e73948a23ea2de5e3d680c29652661ab",
+      "frames": 12193,
+      "channels": 1
+    },
+    {
+      "name": "assets/step_1.wav",
+      "sha256": "471174d7cc2b2a69d04f742048340115fbcd7b49341fbc4c7c490db0a325416c",
+      "frames": 4444,
+      "channels": 1
+    },
+    {
+      "name": "assets/step_2.wav",
+      "sha256": "0bab8e8bc222cf6522ca33ae6dd06b4bb905aa027c8a8aae1653a583088dab89",
+      "frames": 15786,
+      "channels": 1
+    },
+    {
+      "name": "assets/bird_0.wav",
+      "sha256": "eeaf5ceb662b4c058e23df4ba0c8c7f091035bff5c303d816e14dca2cc13302d",
+      "frames": 110250,
+      "channels": 1
+    },
+    {
+      "name": "assets/bird_1.wav",
+      "sha256": "9f8e5c68bf2f3989655a825576ff7f9a1f5c0a07ed271560453b16bf09b3c78d",
+      "frames": 110250,
+      "channels": 1
+    },
+    {
+      "name": "assets/bird_2.wav",
+      "sha256": "2bae764136cf02267256fbcb23dbea05655f5fc59c9404b8266339520f96264b",
+      "frames": 91925,
+      "channels": 1
+    },
+    {
+      "name": "assets/pigeon_0.wav",
+      "sha256": "e24d6964608914aca75f7dfe79841788ae53ea65875120f823d7d33e8e01a41e",
+      "frames": 125379,
+      "channels": 1
+    },
+    {
+      "name": "assets/pigeon_1.wav",
+      "sha256": "e0e04c1e687a76bbff9013581762cc6aaa965b07d47cd0fa60aff88fe688295c",
+      "frames": 115799,
+      "channels": 1
+    },
+    {
+      "name": "assets/gull_0.wav",
+      "sha256": "4515a2ccc63de6fea2bcee644d5a4cccd430610c2b3a434b4a2167db3d54b121",
+      "frames": 120698,
+      "channels": 1
+    },
+    {
+      "name": "assets/gull_1.wav",
+      "sha256": "a5353279a2255212d365d5566279d85522dc470a4675cab13adc13b6017a189a",
+      "frames": 132300,
+      "channels": 1
+    },
+    {
+      "name": "assets/bell.wav",
+      "sha256": "2fd45c06cf9cf586e0a2eeea4e5a1dc6e225c9e1e1156e4f73ccee47c5987518",
+      "frames": 308700,
+      "channels": 1
+    },
+    {
+      "name": "assets/dog.wav",
+      "sha256": "c0f849f9c079b5b6bc8433dbc7a7199c6d8bab980bd07d7df14366907eb6f4ba",
+      "frames": 74833,
+      "channels": 1
+    },
+    {
+      "name": "assets/arrive.wav",
+      "sha256": "663d8aa4f1fea9d5669328bcfb6c9bc03773f7d2085f893eb5d12e51798ce4d5",
+      "frames": 9407,
+      "channels": 1
+    }
+  ],
+  "sources": [
+    {
+      "id": "town",
+      "host": null,
+      "event": null,
+      "mode": "loop",
+      "bed": true,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        0
+      ],
+      "gain": [
+        0.3,
+        0.3
+      ],
+      "pitch": [
+        1,
+        1
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "canal_0",
+      "host": "canal_0",
+      "event": null,
+      "mode": "loop",
+      "bed": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        1,
+        2
+      ],
+      "gain": [
+        3,
+        3
+      ],
+      "pitch": [
+        1,
+        1
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "canal_1",
+      "host": "canal_1",
+      "event": null,
+      "mode": "loop",
+      "bed": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        1,
+        2
+      ],
+      "gain": [
+        3,
+        3
+      ],
+      "pitch": [
+        1,
+        1
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "canal_2",
+      "host": "canal_2",
+      "event": null,
+      "mode": "loop",
+      "bed": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        1,
+        2
+      ],
+      "gain": [
+        3,
+        3
+      ],
+      "pitch": [
+        1,
+        1
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "canal_3",
+      "host": "canal_3",
+      "event": null,
+      "mode": "loop",
+      "bed": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        1,
+        2
+      ],
+      "gain": [
+        3,
+        3
+      ],
+      "pitch": [
+        1,
+        1
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "canal_4",
+      "host": "canal_4",
+      "event": null,
+      "mode": "loop",
+      "bed": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        1,
+        2
+      ],
+      "gain": [
+        3,
+        3
+      ],
+      "pitch": [
+        1,
+        1
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "fountain_0",
+      "host": "fountain_0",
+      "event": null,
+      "mode": "loop",
+      "bed": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        3
+      ],
+      "gain": [
+        3,
+        3
+      ],
+      "pitch": [
+        1,
+        1
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "fountain_1",
+      "host": "fountain_1",
+      "event": null,
+      "mode": "loop",
+      "bed": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        3
+      ],
+      "gain": [
+        3,
+        3
+      ],
+      "pitch": [
+        1,
+        1
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "terrace_0",
+      "host": "terrace_0",
+      "event": null,
+      "mode": "loop",
+      "bed": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        4
+      ],
+      "gain": [
+        1.5,
+        1.5
+      ],
+      "pitch": [
+        1,
+        1
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "terrace_1",
+      "host": "terrace_1",
+      "event": null,
+      "mode": "loop",
+      "bed": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        4
+      ],
+      "gain": [
+        1.5,
+        1.5
+      ],
+      "pitch": [
+        1,
+        1
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "step",
+      "host": "street",
+      "event": "step",
+      "mode": "trigger",
+      "bed": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        5,
+        6,
+        7
+      ],
+      "gain": [
+        0.3,
+        0.42
+      ],
+      "pitch": [
+        0.93,
+        1.07
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "crowd_step",
+      "host": "street",
+      "event": "crowd_step",
+      "mode": "trigger",
+      "bed": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        5,
+        6,
+        7
+      ],
+      "gain": [
+        0.12,
+        0.2
+      ],
+      "pitch": [
+        0.85,
+        1.1
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "bird",
+      "host": "street",
+      "event": "bird",
+      "mode": "trigger",
+      "bed": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        8,
+        9,
+        10
+      ],
+      "gain": [
+        0.5,
+        0.9
+      ],
+      "pitch": [
+        0.95,
+        1.1
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "pigeon",
+      "host": "street",
+      "event": "pigeon",
+      "mode": "trigger",
+      "bed": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        11,
+        12
+      ],
+      "gain": [
+        0.4,
+        0.6
+      ],
+      "pitch": [
+        0.95,
+        1.05
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "gull",
+      "host": "street",
+      "event": "gull",
+      "mode": "trigger",
+      "bed": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        13,
+        14
+      ],
+      "gain": [
+        0.8,
+        1.2
+      ],
+      "pitch": [
+        0.95,
+        1.05
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "bell",
+      "host": "street",
+      "event": "bell",
+      "mode": "trigger",
+      "bed": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        15
+      ],
+      "gain": [
+        4,
+        4
+      ],
+      "pitch": [
+        1,
+        1
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "dog",
+      "host": "street",
+      "event": "dog",
+      "mode": "trigger",
+      "bed": false,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        16
+      ],
+      "gain": [
+        0.3,
+        0.45
+      ],
+      "pitch": [
+        0.95,
+        1.1
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    },
+    {
+      "id": "arrive",
+      "host": null,
+      "event": "arrive",
+      "mode": "trigger",
+      "bed": true,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "variants": [
+        17
+      ],
+      "gain": [
+        0.6,
+        0.6
+      ],
+      "pitch": [
+        1,
+        1
+      ],
+      "bindings": [
+        null,
+        null
+      ]
+    }
+  ]
+}

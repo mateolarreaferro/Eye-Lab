@@ -1,0 +1,97 @@
+{
+  "seed": 11,
+  "hosts": {
+    "canal_0": [
+      0,
+      0,
+      0
+    ],
+    "canal_1": [
+      0,
+      0,
+      0
+    ],
+    "canal_2": [
+      0,
+      0,
+      0
+    ],
+    "canal_3": [
+      0,
+      0,
+      0
+    ],
+    "canal_4": [
+      0,
+      0,
+      0
+    ],
+    "fountain_0": [
+      0,
+      0,
+      0
+    ],
+    "fountain_1": [
+      0,
+      0,
+      0
+    ],
+    "terrace_0": [
+      0,
+      0,
+      0
+    ],
+    "terrace_1": [
+      0,
+      0,
+      0
+    ],
+    "street": [
+      0,
+      0,
+      0
+    ]
+  },
+  "assets": {
+    "town_air": [
+      "assets/town_air.wav"
+    ],
+    "canal": [
+      "assets/canal_a.wav",
+      "assets/canal_b.wav"
+    ],
+    "fountain": [
+      "assets/fountain.wav"
+    ],
+    "terrace": [
+      "assets/terrace.wav"
+    ],
+    "step": [
+      "assets/step_0.wav",
+      "assets/step_1.wav",
+      "assets/step_2.wav"
+    ],
+    "bird": [
+      "assets/bird_0.wav",
+      "assets/bird_1.wav",
+      "assets/bird_2.wav"
+    ],
+    "pigeon": [
+      "assets/pigeon_0.wav",
+      "assets/pigeon_1.wav"
+    ],
+    "gull": [
+      "assets/gull_0.wav",
+      "assets/gull_1.wav"
+    ],
+    "bell": [
+      "assets/bell.wav"
+    ],
+    "dog": [
+      "assets/dog.wav"
+    ],
+    "arrive": [
+      "assets/arrive.wav"
+    ]
+  }
+}

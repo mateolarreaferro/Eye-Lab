@@ -1,0 +1,80 @@
+# Vision Quest city audio world, compiled with SATIE's portable profile.
+# The beacon is deliberately silent: finding it by sight is the exercise.
+loop town_air
+  source_id town
+  bed
+  volume 0.3
+loop canal
+  source_id canal_0
+  at canal_0
+  volume 3
+loop canal
+  source_id canal_1
+  at canal_1
+  volume 3
+loop canal
+  source_id canal_2
+  at canal_2
+  volume 3
+loop canal
+  source_id canal_3
+  at canal_3
+  volume 3
+loop canal
+  source_id canal_4
+  at canal_4
+  volume 3
+loop fountain
+  source_id fountain_0
+  at fountain_0
+  volume 3
+loop fountain
+  source_id fountain_1
+  at fountain_1
+  volume 3
+loop terrace
+  source_id terrace_0
+  at terrace_0
+  volume 1.5
+loop terrace
+  source_id terrace_1
+  at terrace_1
+  volume 1.5
+on step step
+  source_id step
+  at street
+  volume 0.3to0.42
+  pitch 0.93to1.07
+on crowd_step step
+  source_id crowd_step
+  at street
+  volume 0.12to0.2
+  pitch 0.85to1.1
+on bird bird
+  source_id bird
+  at street
+  volume 0.5to0.9
+  pitch 0.95to1.1
+on pigeon pigeon
+  source_id pigeon
+  at street
+  volume 0.4to0.6
+  pitch 0.95to1.05
+on gull gull
+  source_id gull
+  at street
+  volume 0.8to1.2
+  pitch 0.95to1.05
+on bell bell
+  source_id bell
+  at street
+  volume 4
+on dog dog
+  source_id dog
+  at street
+  volume 0.3to0.45
+  pitch 0.95to1.1
+on arrive arrive
+  source_id arrive
+  bed
+  volume 0.6

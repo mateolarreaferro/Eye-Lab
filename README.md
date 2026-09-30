@@ -33,6 +33,7 @@ Eye Lab is a research and training toy, not a medical device. It doesn't diagnos
 | `eye_lab/` | The Godot 4.7 project (games, filters, UI, Iris client). |
 | `overlay/` | `Eye Lab Overlay.app`: Swift helper that filters the whole screen (ScreenCaptureKit + Metal). |
 | `iris-server/` | Vercel function that holds the Claude API key and Iris's prompt and tools. |
+| `vr_game/` | Godot XR project: dichoptic version of the frequency-patching filter as a VR game. See `vr_game/README.md`. |
 | `build_all.sh` | Builds the helper, exports Eye Lab, bundles the helper and signs the app. |
 
 ## Building

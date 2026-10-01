@@ -1,5 +1,7 @@
 # Vision Quest (VR)
 
+**Demo video (desktop mode, no headset):** https://vimeo.com/1231887064
+
 A small Godot XR game built on the `godot-xr-template` (VRatMIT), for the
 "Make a vision game" assignment. Where the desktop Eye Lab app applies its
 spatial-frequency filter to the whole screen for both eyes, this applies it

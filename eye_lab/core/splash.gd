@@ -104,7 +104,7 @@ func _draw_overlay(ci: Control) -> void:
 			var ang := TAU * i / 8.0 + 0.3
 			var p := c + Vector2(cos(ang), sin(ang)) * (130.0 + 90.0 * _cubic_out(s))
 			var sz := 14.0 * sin(s * PI)
-			ci.draw_colored_polygon(preload("res://core/warm_background.gd").sparkle_points(p, sz), Color(1, 1, 1, 0.9))
+			ci.draw_colored_polygon(_sparkle_points(p, sz), Color(1, 1, 1, 0.9))
 
 
 static func _back_out(x: float) -> float:
@@ -115,3 +115,12 @@ static func _back_out(x: float) -> float:
 
 static func _cubic_out(x: float) -> float:
 	return 1.0 - pow(1.0 - x, 3)
+
+
+## Four-point sparkle outline centred on c.
+static func _sparkle_points(c: Vector2, r: float) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in 8:
+		var a := -PI / 2 + i * PI / 4
+		pts.append(c + Vector2(cos(a), sin(a)) * (r if i % 2 == 0 else r * 0.28))
+	return pts

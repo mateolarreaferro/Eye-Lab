@@ -1,7 +1,9 @@
 extends Node
 ## Iris, the Eye Lab guide, powered by Claude. The app talks to the Eye Lab server
-## (iris-server/, deployed on Vercel), which holds the Claude API key, Iris's system
-## prompt and tool definitions, so no key ships inside the app. Iris answers
+## (iris-server/, deployed on Vercel), which holds Iris's system prompt and tool
+## definitions. Requests are paid for either by the player's own Claude API key
+## (Settings > Iris, kept in user://iris.cfg and sent with each request) or, when
+## none is set, by the server's key through the shared access code below. Iris answers
 ## questions about the app and its research, and acts on the app through tools that
 ## run here: open games or pages, set filters, toggle the whole-screen filter and
 ## read the player's progress.
@@ -15,6 +17,10 @@ const SERVER_URL := "https://eye-lab-iris.vercel.app/api/iris"
 ## autoload/iris_secrets.gd, which is git-ignored; copy iris_secrets.example.gd to create it.
 var APP_KEY := _load_app_key()
 const MAX_TOOL_ROUNDS := 6
+const KEY_PATH := "user://iris.cfg"   # kept apart from eye_lab.json so progress data never holds the key
+
+## The player's own Claude API key ("" = use the shared access code, if this build has one).
+var api_key := ""
 
 ## Games Iris can open; keys match main.gd EXERCISES.
 const GAMES := {
@@ -45,6 +51,23 @@ func _ready() -> void:
 	_http.timeout = 90.0
 	_http.request_completed.connect(_on_response)
 	add_child(_http)
+	var cfg := ConfigFile.new()
+	if cfg.load(KEY_PATH) == OK:
+		api_key = str(cfg.get_value("iris", "api_key", ""))
+
+
+func set_api_key(key: String) -> void:
+	api_key = key.strip_edges()
+	var cfg := ConfigFile.new()
+	cfg.set_value("iris", "api_key", api_key)
+	cfg.save(KEY_PATH)
+
+
+## "own" (player's key), "shared" (this build's access code) or "none".
+func key_source() -> String:
+	if api_key != "":
+		return "own"
+	return "shared" if APP_KEY != "" else "none"
 
 
 static func _load_app_key() -> String:
@@ -62,6 +85,9 @@ func reset() -> void:
 func ask(text: String) -> void:
 	if busy or text.strip_edges() == "":
 		return
+	if key_source() == "none":
+		reply.emit("To chat with me, add a Claude API key in Settings, under Iris.")
+		return
 	messages.append({"role": "user", "content": text.strip_edges()})
 	_rounds = 0
 	_send()
@@ -69,10 +95,11 @@ func ask(text: String) -> void:
 
 func _send() -> void:
 	_set_busy(true)
-	var headers := PackedStringArray([
-		"content-type: application/json",
-		"x-eyelab-key: " + APP_KEY,
-	])
+	var headers := PackedStringArray(["content-type: application/json"])
+	if api_key != "":
+		headers.append("x-anthropic-key: " + api_key)
+	else:
+		headers.append("x-eyelab-key: " + APP_KEY)
 	var err := _http.request(SERVER_URL, headers, HTTPClient.METHOD_POST, JSON.stringify({"messages": messages}))
 	if err != OK:
 		_fail("I couldn't reach the internet. Check your connection and try again.")
@@ -88,8 +115,11 @@ func _on_response(result: int, code: int, _headers: PackedStringArray, raw: Pack
 		if typeof(data) == TYPE_DICTIONARY and data.has("error"):
 			msg = str(data["error"].get("message", ""))
 		match code:
-			401:
-				_fail("This copy of Eye Lab can't reach Iris's server. It may need an update.")
+			401, 403:
+				if api_key != "":
+					_fail("Your Claude API key wasn't accepted. Check it in Settings, under Iris.")
+				else:
+					_fail("This copy of Eye Lab can't reach Iris's server. Add your own Claude API key in Settings, under Iris.")
 			413:
 				reset()
 				_fail("Our chat got really long, so I've started a fresh one. What would you like to know?")

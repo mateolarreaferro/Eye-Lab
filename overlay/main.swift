@@ -4,7 +4,7 @@
 // filters each frame on the GPU with Metal, and shows the result in a borderless,
 // click-through, always-on-top window. Other apps keep working normally underneath.
 //
-// Controlled by Eye Lab through a small JSON state file ({"mode": 1, "lod": 3.0}),
+// Controlled by Eye Lab through a small JSON state file ({"mode": 1, "lod": 3.0, "gain": 1.6, "keep": 0, "mix": 1}),
 // and from its own menu bar icon. Minutes with the filter on are written to
 // overlay_time.json next to the state file so they count toward the daily goal.
 //
@@ -23,6 +23,10 @@ import ScreenCaptureKit
 struct FilterSettings: Codable, Equatable {
     var mode: Int = 1        // 0 off, 1 high-pass, 2 low-pass, 3 edges, 4 invert, 5 kaleidoscope
     var lod: Double = 3.0    // blur scale = 2^lod physical pixels (same meaning as in Eye Lab)
+    // Optional so older state files (mode and lod only) still decode.
+    var gain: Double? = nil  // high-pass and edges contrast gain (default 1.6)
+    var keep: Double? = nil  // high-pass: share of the coarse (low-pass) image kept, 0...1
+    var mix: Double? = nil   // low-pass: blend from original (0) to fully blurred (1)
 }
 
 let modeNames = ["Off", "High-pass", "Low-pass", "Edges", "Invert", "Kaleidoscope"]
@@ -52,7 +56,7 @@ vertex VOut vmain(uint vid [[vertex_id]]) {
     return o;
 }
 
-struct Params { int mode; float gain; float time; float segments; float aspect; };
+struct Params { int mode; float gain; float time; float segments; float aspect; float keep; float mix; };
 
 fragment float4 fmain(VOut in [[stage_in]],
                       texture2d<float> src [[texture(0)]],
@@ -62,9 +66,10 @@ fragment float4 fmain(VOut in [[stage_in]],
     float3 c = src.sample(s, in.uv).rgb;
     float3 o = c;
     if (P.mode == 1) {
-        o = 0.5 + (c - blur.sample(s, in.uv).rgb) * P.gain;
+        float3 b = blur.sample(s, in.uv).rgb;
+        o = 0.5 + (c - b) * P.gain + (b - 0.5) * P.keep;
     } else if (P.mode == 2) {
-        o = blur.sample(s, in.uv).rgb;
+        o = mix(c, blur.sample(s, in.uv).rgb, P.mix);
     } else if (P.mode == 3) {
         o = clamp(abs(c - blur.sample(s, in.uv).rgb) * P.gain * 3.0, 0.0, 1.0);
     } else if (P.mode == 4) {
@@ -88,6 +93,8 @@ struct Params {
     var time: Float
     var segments: Float
     var aspect: Float
+    var keep: Float
+    var mix: Float
 }
 
 final class GPU {
@@ -233,9 +240,10 @@ final class DisplayOverlay: NSObject, SCStreamOutput, SCStreamDelegate {
         pass.colorAttachments[0].loadAction = .dontCare
         pass.colorAttachments[0].storeAction = .store
         guard let enc = cmd.makeRenderCommandEncoder(descriptor: pass) else { return }
-        var params = Params(mode: Int32(st.mode), gain: 1.6,
+        var params = Params(mode: Int32(st.mode), gain: Float(st.gain ?? 1.6),
                             time: Float(CACurrentMediaTime() - start), segments: 8,
-                            aspect: Float(w) / Float(h))
+                            aspect: Float(w) / Float(h),
+                            keep: Float(st.keep ?? 0.0), mix: Float(st.mix ?? 1.0))
         enc.setRenderPipelineState(gpu.pipeline)
         enc.setFragmentTexture(src, index: 0)
         enc.setFragmentTexture(blurred ?? src, index: 1)

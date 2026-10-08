@@ -1,20 +1,34 @@
 // POST /api/iris: the Eye Lab app sends the conversation; this adds Iris's system
-// prompt and tools, calls Claude with the server's API key, and returns the reply.
-// The app runs the tools locally and posts the tool results back in the next call.
+// prompt and tools, calls Claude, and returns the reply. The app runs the tools
+// locally and posts the tool results back in the next call.
+//
+// Who pays: if the request carries the player's own Claude API key
+// (x-anthropic-key, set in the app's Settings), it is used for this one call and
+// never stored or logged. Otherwise the shared access code (x-eyelab-key) must
+// match EYELAB_APP_KEY and the server's ANTHROPIC_API_KEY is used.
 
 import Anthropic from "@anthropic-ai/sdk";
 import { MODEL, SYSTEM_PROMPT, TOOLS } from "../lib/iris.js";
 
-const client = new Anthropic(); // ANTHROPIC_API_KEY from the Vercel environment
+const serverClient = new Anthropic(); // ANTHROPIC_API_KEY from the Vercel environment
 
 const MAX_BODY_BYTES = 300_000;
 const MAX_MESSAGES = 80;          // ~40 exchanges, including tool rounds
 const MAX_USER_TEXT = 2_000;      // characters per typed message
 
 export async function POST(request: Request): Promise<Response> {
-  const appKey = process.env.EYELAB_APP_KEY;
-  if (!appKey || request.headers.get("x-eyelab-key") !== appKey) {
-    return json({ error: "unauthorized" }, 401);
+  const userKey = request.headers.get("x-anthropic-key")?.trim();
+  let client = serverClient;
+  if (userKey) {
+    if (!userKey.startsWith("sk-ant-") || userKey.length > 300) {
+      return json({ error: "invalid_api_key" }, 401);
+    }
+    client = new Anthropic({ apiKey: userKey });
+  } else {
+    const appKey = process.env.EYELAB_APP_KEY;
+    if (!appKey || request.headers.get("x-eyelab-key") !== appKey) {
+      return json({ error: "unauthorized" }, 401);
+    }
   }
 
   const raw = await request.text();
@@ -47,6 +61,9 @@ export async function POST(request: Request): Promise<Response> {
   } catch (err) {
     if (err instanceof Anthropic.RateLimitError) {
       return json({ error: "busy" }, 429);
+    }
+    if (err instanceof Anthropic.AuthenticationError || err instanceof Anthropic.PermissionDeniedError) {
+      return json({ error: userKey ? "invalid_api_key" : "server key rejected" }, userKey ? 401 : 502);
     }
     if (err instanceof Anthropic.APIError) {
       console.error("Claude API error", err.status, err.message);

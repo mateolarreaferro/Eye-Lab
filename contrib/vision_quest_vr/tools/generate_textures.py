@@ -10,7 +10,7 @@ exact same result.
 
 Pure numpy/PIL/scipy, no Blender needed. Run once (or whenever textures
 need tweaking) before generate_city.py:
-    python3 vr_game/tools/generate_textures.py
+    python3 contrib/vision_quest_vr/tools/generate_textures.py
 
 generate_city.py loads the resulting PNGs at import time.
 """

@@ -1,9 +1,9 @@
 // Dichoptic "frequency patching" filter, after Sinha lab's "Perceive More By
 // Seeing Less": high-pass filter that removes the low spatial frequencies a
-// dominant eye normally leans on. Same math as eye_lab/shaders/filter.gdshader
+// dominant eye normally leans on. Same math as ../../eye_lab/shaders/filter.gdshader
 // mode 1, but applied to ONE eye only (VIEW_INDEX-gated) instead of the whole
 // screen, so the headset can rebalance the two eyes instead of patching one
-// shut. See vr_game/README.md.
+// shut. See contrib/vision_quest_vr/README.md.
 shader_type spatial;
 render_mode unshaded, cull_disabled, depth_test_disabled, blend_mix, shadows_disabled;
 

@@ -45,6 +45,11 @@ func _notification(what: int) -> void:
 			save_data()
 
 
+## Save soon (within 30 s, or on quit) instead of right away, e.g. while a slider drags.
+func mark_dirty() -> void:
+	_dirty = true
+
+
 func is_calibrated() -> bool:
 	return float(settings["px_per_cm"]) > 0.0
 

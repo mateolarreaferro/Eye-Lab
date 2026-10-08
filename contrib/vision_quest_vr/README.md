@@ -18,7 +18,7 @@ can't target one eye without the other, but a VR headset renders each eye
 separately, so it's a natural place to actually build this.
 
 `shaders/dichoptic_filter.gdshader` is the same high-pass "frequency
-patching" math as `eye_lab/shaders/filter.gdshader` (mode 1), gated by
+patching" math as `../../eye_lab/shaders/filter.gdshader` (mode 1), gated by
 Godot's `VIEW_INDEX` so it can render into just one eye's view. See
 `scripts/dichoptic_filter.gd`.
 
@@ -59,7 +59,7 @@ maze walls wouldn't actually block anything.
 `tools/generate_city.py`, run headless through Blender, no manual modeling:
 
 ```sh
-blender --background --python vr_game/tools/generate_city.py
+blender --background --python contrib/vision_quest_vr/tools/generate_city.py
 ```
 
 - **Style**: a European canal-town look (steep gabled roofs via a small
@@ -108,7 +108,7 @@ blender --background --python vr_game/tools/generate_city.py
   `make_material(..., texture_set="stucco")` wires the images into
   Base Color / Roughness / Normal, with the existing WALL_COLORS/
   ROOF_COLORS still applied as a tint multiplied over the albedo texture.
-  Run `python3 vr_game/tools/generate_textures.py` once before
+  Run `python3 contrib/vision_quest_vr/tools/generate_textures.py` once before
   `generate_city.py` if textures need regenerating (they're committed to
   the repo, so this is only needed if you're changing them).
 - **Points of interest**: dense per-building detail (shop signs, lit
@@ -176,7 +176,7 @@ landmark buildings, signs, pets), the mesh-merging optimization (26 draw
 calls, verified from the exported glTF's own node count), and the Godot
 lighting/environment changes below -- has **not** been re-tested in the
 simulator. Regenerate (`blender --background --python
-vr_game/tools/generate_city.py`, already done once here) and re-run before
+contrib/vision_quest_vr/tools/generate_city.py`, already done once here) and re-run before
 trusting it's solid. Specifically worth checking:
 - That collision still works correctly now that ~1070 objects merged down
   to 26 (the collision-generation code wasn't changed and should be

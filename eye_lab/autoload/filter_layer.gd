@@ -19,9 +19,20 @@ const TIPS := [
 
 signal mode_changed(mode: int)
 signal system_changed(on: bool)
+signal params_changed
+
+## How the high-pass and low-pass filters behave; set from Settings > Filters and
+## saved in Lab.settings["filter"]. lod: blur scale 2^lod px (higher = coarser cutoff).
+## hp_gain: contrast boost of what's left. hp_keep: share of the coarse image kept
+## (0 = pure high-pass). lp_mix: 0 = original, 1 = fully blurred. Edges share hp_*.
+const DEFAULTS := {"hp_lod": 3.0, "hp_gain": 1.6, "hp_keep": 0.0, "lp_lod": 3.0, "lp_mix": 1.0}
 
 var mode: int = Mode.OFF
-var cutoff_lod := 3.0
+var params: Dictionary = DEFAULTS.duplicate()
+## Cutoff of the current filter (low-pass has its own; the others use high-pass's).
+var cutoff_lod: float:
+	get:
+		return float(params[_lod_key()])
 ## True while the whole-screen overlay helper is filtering the entire Mac.
 var system_on := false
 
@@ -64,6 +75,10 @@ func _ready() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui_layer.add_child(root)
 
+	var saved = Lab.settings.get("filter")
+	if typeof(saved) == TYPE_DICTIONARY:
+		for k in DEFAULTS:
+			params[k] = float(saved.get(k, DEFAULTS[k]))
 	_build_toolbar(root)
 	set_mode(Mode.OFF)
 	_detect_running_overlay()
@@ -115,7 +130,7 @@ func _build_toolbar(root: Control) -> void:
 		_buttons.append(b)
 	row.add_child(seg_bg)
 
-	_sys_btn = UI.apple_button("Whole screen", "monitor", "gray", UI.SYS_INDIGO, 13, 34.0)
+	_sys_btn = UI.apple_button("Whole screen", "monitor", "gray", UI.LABEL, 13, 34.0)
 	_sys_btn.icon = Icons.tex("monitor", 15, Color.WHITE)
 	_sys_btn.toggle_mode = true
 	_sys_btn.tooltip_text = "Filter the whole computer, including other apps and videos.\nIt keeps running after you close Eye Lab; turn it off here or from the eye icon in the menu bar."
@@ -141,7 +156,7 @@ func _build_toolbar(root: Control) -> void:
 	_slider.step = 0.25
 	_slider.value = 7.5 - cutoff_lod
 	_slider.focus_mode = Control.FOCUS_NONE
-	_slider.tooltip_text = "Which detail sizes the filter splits at"
+	_slider.tooltip_text = "Which detail sizes the filter splits at. More options in Settings > Filters."
 	var track := UI.box(Color(0, 0, 0, 0.1), 2, 0)
 	track.content_margin_top = 2
 	track.content_margin_bottom = 2
@@ -188,7 +203,7 @@ func _build_toolbar(root: Control) -> void:
 	root.add_child(_bar)
 	_bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_MINSIZE, 14)
 
-	_mini = UI.apple_button("Filters", "eye", "gray", UI.SYS_BLUE, 13, 34.0)
+	_mini = UI.apple_button("Filters", "eye", "gray", UI.LABEL, 13, 34.0)
 	_mini.icon = Icons.tex("eye", 15, Color.WHITE)
 	for key in ["icon_normal_color", "icon_hover_color"]:
 		_mini.add_theme_color_override(key, UI.LABEL)
@@ -235,8 +250,7 @@ func set_mode(m: int) -> void:
 		_write_state()
 	# While the overlay runs it already filters this window, so don't filter twice.
 	_rect.visible = mode != Mode.OFF and not system_on
-	_mat.set_shader_parameter("mode", mode)
-	_mat.set_shader_parameter("lod", cutoff_lod)
+	_apply_params()
 	for i in _buttons.size():
 		_buttons[i].set_pressed_no_signal(i == mode)
 	_cutoff_box.visible = mode in [Mode.HIGH_PASS, Mode.LOW_PASS, Mode.EDGES]
@@ -245,19 +259,55 @@ func set_mode(m: int) -> void:
 	mode_changed.emit(mode)
 
 
+## Cutoff of the current filter (the toolbar slider and Iris use this).
 func set_cutoff(lod: float) -> void:
-	cutoff_lod = clampf(lod, 0.5, 7.0)
-	_mat.set_shader_parameter("lod", cutoff_lod)
-	_slider.set_value_no_signal(7.5 - cutoff_lod)
+	set_param(_lod_key(), lod)
+
+
+func set_param(key: String, value: float) -> void:
+	var limits := {"hp_lod": [0.5, 7.0], "lp_lod": [0.5, 7.0], "hp_gain": [0.5, 4.0], "hp_keep": [0.0, 1.0], "lp_mix": [0.0, 1.0]}
+	params[key] = clampf(value, limits[key][0], limits[key][1])
+	_params_updated()
+
+
+func reset_params() -> void:
+	params = DEFAULTS.duplicate()
+	_params_updated()
+
+
+func _params_updated() -> void:
+	Lab.settings["filter"] = params.duplicate()
+	Lab.mark_dirty()
+	_apply_params()
 	if system_on:
 		_write_state()
 	_update_labels()
+	params_changed.emit()
+
+
+func _lod_key() -> String:
+	return "lp_lod" if mode == Mode.LOW_PASS else "hp_lod"
+
+
+func _apply_params() -> void:
+	_mat.set_shader_parameter("mode", mode)
+	_mat.set_shader_parameter("lod", cutoff_lod)
+	_mat.set_shader_parameter("gain", params["hp_gain"])
+	_mat.set_shader_parameter("keep", params["hp_keep"])
+	_mat.set_shader_parameter("amount", params["lp_mix"])
+	if _slider:
+		_slider.set_value_no_signal(7.5 - cutoff_lod)
+
+
+## Approximate cutoff in cycles per degree for a given blur scale.
+func lod_to_cpd(lod: float) -> float:
+	return Lab.px_per_deg() * Lab.ui_scale() / pow(2.0, lod + 1.0)
 
 
 ## Approximate spatial-frequency cutoff of the blur, in cycles per degree.
 func cutoff_cpd() -> float:
 	# The shader works in physical pixels; px_per_deg is in logical units.
-	return Lab.px_per_deg() * Lab.ui_scale() / pow(2.0, cutoff_lod + 1.0)
+	return lod_to_cpd(cutoff_lod)
 
 
 func _input(event: InputEvent) -> void:
@@ -364,7 +414,8 @@ func set_system(on: bool) -> void:
 func _write_state(force_mode := -1) -> void:
 	var f := FileAccess.open(_state_path(), FileAccess.WRITE)
 	if f:
-		f.store_string(JSON.stringify({"mode": force_mode if force_mode >= 0 else mode, "lod": cutoff_lod}))
+		f.store_string(JSON.stringify({"mode": force_mode if force_mode >= 0 else mode, "lod": cutoff_lod,
+			"gain": params["hp_gain"], "keep": params["hp_keep"], "mix": params["lp_mix"]}))
 
 
 ## True if the helper process is alive.
@@ -396,9 +447,10 @@ func _sync_from_overlay() -> void:
 		system_changed.emit(false)
 		set_mode(Mode.OFF)
 	elif m != mode or not is_equal_approx(lod, cutoff_lod):
-		cutoff_lod = lod
-		_slider.set_value_no_signal(7.5 - cutoff_lod)
 		mode = m
+		params[_lod_key()] = lod
+		_apply_params()
+		params_changed.emit()
 		for i in _buttons.size():
 			_buttons[i].set_pressed_no_signal(i == mode)
 		_cutoff_box.visible = mode in [Mode.HIGH_PASS, Mode.LOW_PASS, Mode.EDGES]
@@ -417,7 +469,6 @@ func _detect_running_overlay() -> void:
 	if typeof(d) == TYPE_DICTIONARY and int(d.get("mode", 0)) != 0:
 		system_on = true
 		mode = int(d["mode"])
-		cutoff_lod = float(d.get("lod", cutoff_lod))
-		_slider.set_value_no_signal(7.5 - cutoff_lod)
+		params[_lod_key()] = float(d.get("lod", cutoff_lod))
 		_sys_btn.set_pressed_no_signal(true)
 		set_mode(mode)

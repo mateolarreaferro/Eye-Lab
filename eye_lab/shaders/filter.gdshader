@@ -8,7 +8,9 @@ render_mode unshaded;
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
 uniform int mode = 1;
 uniform float lod = 3.0;       // blur scale = 2^lod px; higher = lower cutoff frequency
-uniform float gain = 1.6;
+uniform float gain = 1.6;      // high-pass and edges contrast gain
+uniform float keep = 0.0;      // high-pass: share of the coarse image kept (0 = pure high-pass)
+uniform float amount = 1.0;    // low-pass: 0 = original, 1 = fully blurred
 uniform float segments = 8.0;
 
 vec3 blurred(vec2 uv, vec2 px) {
@@ -32,9 +34,10 @@ void fragment() {
 	vec3 c = textureLod(screen_tex, uv, 0.0).rgb;
 	vec3 o = c;
 	if (mode == 1) {
-		o = vec3(0.5) + (c - blurred(uv, px)) * gain;
+		vec3 b = blurred(uv, px);
+		o = vec3(0.5) + (c - b) * gain + (b - vec3(0.5)) * keep;
 	} else if (mode == 2) {
-		o = blurred(uv, px);
+		o = mix(c, blurred(uv, px), amount);
 	} else if (mode == 3) {
 		o = clamp(abs(c - blurred(uv, px)) * gain * 3.0, 0.0, 1.0);
 	} else if (mode == 4) {

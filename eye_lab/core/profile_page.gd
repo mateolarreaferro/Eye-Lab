@@ -8,12 +8,12 @@ signal play(key: String)
 const INK := UI.LABEL
 const INK_MUTED := UI.LABEL_2
 const ACCENT := UI.ACCENT
-const AVATAR_COLORS := [UI.ACCENT, UI.SYS_BLUE, UI.SYS_GREEN, UI.SYS_PURPLE, UI.SYS_PINK, Color("f5b400")]
+const AVATAR_COLORS := [UI.ACCENT, UI.CORAL, UI.ROSE, UI.PLUM, UI.INDIGO, UI.GOLD]
 
 const TESTS := [
-	{"id": "acuity", "name": "Letter E", "icon": "letter_e", "what": "Acuity", "better": "lower", "color": UI.SYS_BLUE},
-	{"id": "contrast", "name": "Faint stripes", "icon": "contrast", "what": "Contrast sensitivity", "better": "higher", "color": UI.SYS_BLUE},
-	{"id": "field_map", "name": "Dot hunt", "icon": "target", "what": "Field of view", "better": "higher", "color": UI.SYS_BLUE},
+	{"id": "acuity", "name": "Letter E", "icon": "letter_e", "what": "Acuity", "better": "lower", "color": UI.CORAL},
+	{"id": "contrast", "name": "Faint stripes", "icon": "contrast", "what": "Contrast sensitivity", "better": "higher", "color": UI.CORAL},
+	{"id": "field_map", "name": "Dot hunt", "icon": "target", "what": "Field of view", "better": "higher", "color": UI.CORAL},
 ]
 
 ## Badge: [icon, title, how to earn, earned?]
@@ -79,10 +79,10 @@ func _build() -> void:
 	var week := 0.0
 	for i in 7:
 		week += Lab.filter_minutes_on(Lab.date_ago(i))
-	stats.add_child(_stat("trophy", UI.SYS_ORANGE, str(Lab.stars), "trophies"))
-	stats.add_child(_stat("flame", UI.SYS_PINK, str(Lab.streak()), "day streak"))
-	stats.add_child(_stat("gamepad", UI.SYS_INDIGO, str(Lab.sessions.size()), "games played"))
-	stats.add_child(_stat("clock", UI.SYS_GREEN, "%d" % int(week), "filter minutes this week"))
+	stats.add_child(_stat("trophy", UI.GOLD, str(Lab.stars), "trophies"))
+	stats.add_child(_stat("flame", UI.ACCENT, str(Lab.streak()), "day streak"))
+	stats.add_child(_stat("gamepad", UI.PLUM, str(Lab.sessions.size()), "games played"))
+	stats.add_child(_stat("clock", UI.INDIGO, "%d" % int(week), "filter minutes this week"))
 	page.add_child(stats)
 
 	# Filter week chart + tests.
@@ -196,7 +196,7 @@ func _week_card() -> Control:
 			var mins: float = days[i][1]
 			var h := maxf(4.0, mins / top_v * r.size.y)
 			var x := r.position.x + i * bw + bw * 0.2
-			var col := UI.SYS_GREEN if mins >= goal else Color(UI.SYS_GREEN, 0.55)
+			var col := UI.INDIGO if mins >= goal else Color(UI.INDIGO, 0.55)
 			chart.draw_style_box(UI.box(Color(0.47, 0.47, 0.5, 0.1), 8, 0), Rect2(x, r.position.y, bw * 0.6, r.size.y))
 			chart.draw_style_box(UI.box(col, 8, 0), Rect2(x, r.end.y - h, bw * 0.6, h))
 			var day_name := _weekday(days[i][0])
@@ -286,7 +286,7 @@ func _badges_card() -> Control:
 		tile.tooltip_text = b[2]
 		var h := HBoxContainer.new()
 		h.add_theme_constant_override("separation", 12)
-		h.add_child(UI.icon_tile(b[0] if b[3] else "lock", UI.SYS_ORANGE if b[3] else Color("c7c7cc"), 40.0))
+		h.add_child(UI.icon_tile(b[0] if b[3] else "lock", UI.GOLD if b[3] else Color("c9c3cc"), 40.0))
 		var tv := VBoxContainer.new()
 		tv.alignment = BoxContainer.ALIGNMENT_CENTER
 		tv.add_theme_constant_override("separation", -2)

@@ -244,10 +244,10 @@ func _chip(text: String) -> Button:
 
 
 func _ink_button(text: String, icon: String) -> Button:
-	var b := UI.button(text, icon, "ghost", INK, 14)
+	var b := UI.apple_button(text, icon, "gray", INK, 14, 30.0)
 	b.icon = Icons.tex(icon, 16, INK_MUTED)
 	for key in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "font_color", "font_hover_color"]:
 		b.add_theme_color_override(key, INK_MUTED)
 	for st in ["normal", "hover", "pressed", "hover_pressed"]:
-		b.add_theme_stylebox_override(st, UI.box(Color(0.47, 0.47, 0.5, 0.12) if st == "normal" else Color(0.47, 0.47, 0.5, 0.22), 14, 6))
+		b.add_theme_stylebox_override(st, UI.box(UI.FILL if st == "normal" else Color(UI.FILL, 0.22), 14, 6))
 	return b

@@ -7,10 +7,10 @@ const INK := UI.LABEL
 const INK_MUTED := UI.LABEL_2
 
 const SECTIONS := [
-	{"name": "Eye check-up", "tag": "Measure how you see", "icon": "eye", "color": UI.SYS_BLUE},
-	{"name": "Spot the odd one", "tag": "Train fine detail", "icon": "search", "color": UI.SYS_GREEN},
-	{"name": "Brain games", "tag": "Attention and space", "icon": "sun", "color": UI.SYS_PURPLE},
-	{"name": "Magic glasses", "tag": "See less, perceive more", "icon": "kaleido", "color": UI.ACCENT},
+	{"name": "Eye check-up", "tag": "Measure how you see", "icon": "eye", "color": UI.CORAL},
+	{"name": "Spot the odd one", "tag": "Train fine detail", "icon": "search", "color": UI.ROSE},
+	{"name": "Brain games", "tag": "Attention and space", "icon": "sun", "color": UI.PLUM},
+	{"name": "Magic glasses", "tag": "See less, perceive more", "icon": "kaleido", "color": UI.INDIGO},
 ]
 
 const EXERCISES := [
@@ -43,14 +43,9 @@ var _running: Exercise
 var _running_ex: Dictionary
 var _last_text := ""
 
-# Grown-ups panel widgets
-var _dist_label: Label
-var _goal_value: Label
-var _calib_chip: Label
-var _calib_text: Label
+# Settings > History widgets
 var _metric: OptionButton
 var _chart: Control
-var _last_label: Label
 var _metric_ids: Array = []
 
 
@@ -170,8 +165,8 @@ func _header() -> Control:
 	spacer.size_flags_horizontal = SIZE_EXPAND_FILL
 	h.add_child(spacer)
 
-	h.add_child(_stat_chip("trophy", UI.SYS_ORANGE, str(Lab.stars), "Trophies"))
-	h.add_child(_stat_chip("flame", UI.SYS_PINK, str(Lab.streak()), "Day streak"))
+	h.add_child(_stat_chip("trophy", UI.GOLD, str(Lab.stars), "Trophies"))
+	h.add_child(_stat_chip("flame", UI.ACCENT, str(Lab.streak()), "Day streak"))
 
 	# Filter minutes today as an Activity-style ring.
 	var goal := float(Lab.settings["daily_filter_goal_min"])
@@ -182,9 +177,9 @@ func _header() -> Control:
 	var frac := clampf(done / goal, 0.0, 1.0)
 	ring.draw.connect(func():
 		var c := ring.size / 2.0
-		ring.draw_arc(c, 12, 0, TAU, 48, Color(UI.SYS_GREEN, 0.18), 5.0, true)
+		ring.draw_arc(c, 12, 0, TAU, 48, Color(UI.ACCENT, 0.18), 5.0, true)
 		if frac > 0.0:
-			ring.draw_arc(c, 12, -PI / 2, -PI / 2 + TAU * frac, 48, UI.SYS_GREEN, 5.0, true))
+			ring.draw_arc(c, 12, -PI / 2, -PI / 2 + TAU * frac, 48, UI.ACCENT, 5.0, true))
 	var mv := VBoxContainer.new()
 	mv.add_theme_constant_override("separation", -3)
 	mv.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -204,7 +199,7 @@ func _header() -> Control:
 	gap.custom_minimum_size = Vector2(8, 0)
 	h.add_child(gap)
 	h.add_child(_avatar_button())
-	var gear := _circle_button("settings", "Settings: viewing setup, calibration and test history")
+	var gear := _circle_button("settings", "Settings: viewing setup, filters, Iris and test history")
 	gear.pressed.connect(_open_grownups)
 	h.add_child(gear)
 	return h
@@ -230,7 +225,7 @@ func _stat_chip(icon: String, color: Color, value: String, caption: String) -> C
 
 
 func _circle_button(icon: String, tip: String) -> Button:
-	var b := UI.apple_button("", icon, "gray", UI.SYS_BLUE, 15, 44.0)
+	var b := UI.apple_button("", icon, "gray", INK, 15, 44.0)
 	b.icon = Icons.tex(icon, 20, Color.WHITE)
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	for key in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_hover_pressed_color"]:
@@ -294,7 +289,7 @@ func _tile(ex: Dictionary, color: Color) -> Button:
 	b.tooltip_text = ex["desc"]
 	for st in ["normal", "hover", "pressed", "hover_pressed"]:
 		b.add_theme_stylebox_override(st, StyleBoxEmpty.new())
-	var glass := UI.glass_panel(20.0, 16, Color(1, 1, 1, 0.94))
+	var glass := UI.glass_panel(20.0, 16, UI.CARD)
 	glass.mouse_filter = MOUSE_FILTER_IGNORE
 	glass.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	b.add_child(glass)
@@ -332,7 +327,7 @@ func _tile(ex: Dictionary, color: Color) -> Button:
 	v.add_child(tag)
 
 	b.mouse_entered.connect(func(): glass.set_tint(Color(1, 1, 1, 1.0)))
-	b.mouse_exited.connect(func(): glass.set_tint(Color(1, 1, 1, 0.94)))
+	b.mouse_exited.connect(func(): glass.set_tint(UI.CARD))
 	UI.add_press_feel(b, 1.02)
 	if ex.get("toggle", false):
 		b.pressed.connect(func(): Filter.set_system(not Filter.system_on))
@@ -348,7 +343,7 @@ func _switch(on: bool) -> Control:
 	sw.size_flags_vertical = SIZE_SHRINK_BEGIN
 	sw.mouse_filter = MOUSE_FILTER_IGNORE
 	sw.draw.connect(func():
-		sw.draw_style_box(UI.box(UI.SYS_GREEN if on else Color(0.47, 0.47, 0.5, 0.25), 13, 0), Rect2(Vector2.ZERO, sw.size))
+		sw.draw_style_box(UI.box(UI.ACCENT if on else Color(UI.FILL, 0.25), 13, 0), Rect2(Vector2.ZERO, sw.size))
 		var knob_x := sw.size.x - 13.0 if on else 13.0
 		sw.draw_circle(Vector2(knob_x, 13) + Vector2(0, 1), 11.5, Color(0, 0, 0, 0.08))
 		sw.draw_circle(Vector2(knob_x, 13), 11, Color.WHITE))
@@ -397,13 +392,24 @@ func _iris_button() -> Control:
 	return b
 
 
-# --- Grown-ups panel ------------------------------------------------------------
+# --- Settings sheet ----------------------------------------------------------------
+# One sheet with a tab row: General (viewing setup), Filters (how high-pass and
+# low-pass behave), Iris (Claude API key) and History (test results chart).
 
-func _open_grownups() -> void:
+const SETTINGS_TABS := ["General", "Filters", "Iris", "History"]
+var _settings_tab := 0
+var _tab_row: HBoxContainer
+var _tab_body: VBoxContainer
+
+
+func _open_grownups(tab := -1) -> void:
+	if tab >= 0:
+		_settings_tab = tab
 	if _grownups:
+		_show_settings_tab(_settings_tab)
 		return
 	var dim := ColorRect.new()
-	dim.color = Color(0.06, 0.06, 0.1, 0.32)
+	dim.color = UI.DIM
 	dim.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	add_child(dim)
 	_grownups = dim
@@ -411,123 +417,47 @@ func _open_grownups() -> void:
 	center.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	dim.add_child(center)
 	var panel := PanelContainer.new()
-	var sheet := UI.box(Color(0.97, 0.97, 0.98, 0.98), 24, 24)
-	sheet.shadow_color = Color(0, 0, 0, 0.18)
+	var sheet := UI.box(UI.SHEET, 24, 26)
+	sheet.shadow_color = Color(0.2, 0.05, 0.1, 0.18)
 	sheet.shadow_size = 40
 	sheet.shadow_offset = Vector2(0, 14)
 	panel.add_theme_stylebox_override("panel", sheet)
+	panel.custom_minimum_size = Vector2(620, 600)
 	center.add_child(panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 18)
 	panel.add_child(col)
 
 	var head := HBoxContainer.new()
-	head.add_child(UI.icon_tile("settings", Color("8e8e93"), 44.0))
-	var hv := VBoxContainer.new()
-	hv.add_child(UI.label("Settings", 22, INK, 700))
-	hv.add_child(UI.label("Viewing setup, calibration, sound and test history", 13, INK_MUTED))
-	hv.size_flags_horizontal = SIZE_EXPAND_FILL
-	head.add_theme_constant_override("separation", 14)
-	head.add_child(hv)
-	var close := UI.apple_button("Done", "", "tinted", UI.ACCENT, 15, 36.0)
+	head.add_theme_constant_override("separation", 12)
+	var title := UI.label("Settings", 24, INK, 700)
+	title.size_flags_horizontal = SIZE_EXPAND_FILL
+	head.add_child(title)
+	var close := UI.apple_button("Done", "", "filled", UI.ACCENT, 15, 36.0)
 	close.size_flags_vertical = SIZE_SHRINK_CENTER
 	close.pressed.connect(_close_grownups)
 	head.add_child(close)
 	col.add_child(head)
 
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 18)
-	col.add_child(row)
-
-	var setup := _panel(row, "Setup", "settings", UI.SYS_BLUE)
-	setup.get_parent().custom_minimum_size = Vector2(360, 0)
-	setup.add_child(UI.label("Distance from eyes to screen", 13, INK_MUTED))
-	_dist_label = UI.label("", 17, INK, 600)
-	setup.add_child(_stepper(_dist_label,
-		func(): _set_setting("distance_cm", clampf(float(Lab.settings["distance_cm"]) - 5, 20, 400)),
-		func(): _set_setting("distance_cm", clampf(float(Lab.settings["distance_cm"]) + 5, 20, 400))))
-	setup.add_child(UI.label("Eye being tested", 13, INK_MUTED))
-	var eyes := HBoxContainer.new()
-	eyes.add_theme_constant_override("separation", 6)
+	# Segmented control, same look as the filter bar.
+	var seg_bg := PanelContainer.new()
+	seg_bg.add_theme_stylebox_override("panel", UI.box(UI.FILL, 11, 2))
+	_tab_row = HBoxContainer.new()
+	_tab_row.add_theme_constant_override("separation", 0)
+	seg_bg.add_child(_tab_row)
 	var group := ButtonGroup.new()
-	for e in ["Both", "Left", "Right"]:
-		var b := UI.apple_button(e, "", "gray", UI.SYS_BLUE, 14, 34.0)
-		b.toggle_mode = true
-		b.button_group = group
-		b.size_flags_horizontal = SIZE_EXPAND_FILL
-		b.add_theme_stylebox_override("pressed", UI.box(UI.ACCENT, 17, 8))
-		b.add_theme_stylebox_override("hover_pressed", UI.box(UI.ACCENT, 17, 8))
-		for key in ["font_pressed_color", "font_hover_pressed_color"]:
-			b.add_theme_color_override(key, Color.WHITE)
-		b.button_pressed = Lab.settings["eye"] == e
-		b.pressed.connect(func(): _set_setting("eye", e))
-		eyes.add_child(b)
-	setup.add_child(eyes)
-	setup.add_child(UI.label("Daily goal with a filter on", 13, INK_MUTED))
-	_goal_value = UI.label("", 17, INK, 600)
-	setup.add_child(_stepper(_goal_value,
-		func(): _set_setting("daily_filter_goal_min", clampf(float(Lab.settings["daily_filter_goal_min"]) - 15, 15, 480)),
-		func(): _set_setting("daily_filter_goal_min", clampf(float(Lab.settings["daily_filter_goal_min"]) + 15, 15, 480))))
-	var cal_row := HBoxContainer.new()
-	cal_row.add_theme_constant_override("separation", 10)
-	_calib_chip = UI.label("", 12, Color.BLACK, 700)
-	_calib_chip.size_flags_vertical = SIZE_SHRINK_CENTER
-	cal_row.add_child(_calib_chip)
-	_calib_text = UI.label("", 12, INK_MUTED, 400, true)
-	_calib_text.size_flags_horizontal = SIZE_EXPAND_FILL
-	cal_row.add_child(_calib_text)
-	setup.add_child(cal_row)
-	var calib := UI.apple_button("Calibrate with a card", "card", "tinted", UI.ACCENT, 15, 38.0)
-	calib.pressed.connect(func():
-		_close_grownups()
-		_launch({"key": "calibrate", "script": "res://exercises/calibrate.gd", "icon": "card"}, UI.BLUE))
-	setup.add_child(calib)
-	var snd_row := HBoxContainer.new()
-	var snd_label := UI.label("Interface sounds", 15, INK, 400)
-	snd_label.size_flags_horizontal = SIZE_EXPAND_FILL
-	snd_row.add_child(snd_label)
-	var snd := Button.new()
-	snd.toggle_mode = true
-	snd.button_pressed = Sfx.enabled
-	snd.focus_mode = FOCUS_NONE
-	snd.mouse_default_cursor_shape = CURSOR_POINTING_HAND
-	snd.custom_minimum_size = Vector2(50, 30)
-	for st in ["normal", "hover", "pressed", "hover_pressed", "focus"]:
-		snd.add_theme_stylebox_override(st, StyleBoxEmpty.new())
-	snd.draw.connect(func():
-		var on := snd.button_pressed
-		snd.draw_style_box(UI.box(UI.ACCENT if on else Color(0.47, 0.47, 0.5, 0.25), 15, 0), Rect2(Vector2.ZERO, snd.size))
-		var kx := snd.size.x - 15.0 if on else 15.0
-		snd.draw_circle(Vector2(kx, 15.5), 13.5, Color(0, 0, 0, 0.08))
-		snd.draw_circle(Vector2(kx, 15), 13, Color.WHITE))
-	snd.toggled.connect(func(on):
-		Sfx.set_enabled(on)
-		snd.queue_redraw())
-	snd_row.add_child(snd)
-	setup.add_child(snd_row)
+	for i in SETTINGS_TABS.size():
+		var t := _segment(SETTINGS_TABS[i], group)
+		t.size_flags_horizontal = SIZE_EXPAND_FILL
+		t.pressed.connect(_show_settings_tab.bind(i))
+		_tab_row.add_child(t)
+	col.add_child(seg_bg)
 
-
-	var prog := _panel(row, "Test history", "chart", UI.SYS_INDIGO)
-	prog.get_parent().custom_minimum_size = Vector2(440, 0)
-	_metric = OptionButton.new()
-	_metric.focus_mode = FOCUS_NONE
-	for st in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
-		var ob := UI.box(Color(0.47, 0.47, 0.5, 0.12 if st != "hover" else 0.2), 10, 8)
-		ob.content_margin_left = 12
-		_metric.add_theme_stylebox_override(st, ob)
-	for key in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
-		_metric.add_theme_color_override(key, INK)
-	_metric.add_theme_color_override("font_disabled_color", INK_MUTED)
-	_metric.add_theme_font_size_override("font_size", 14)
-	_metric.item_selected.connect(func(_i): _chart.queue_redraw())
-	prog.add_child(_metric)
-	_chart = Control.new()
-	_chart.custom_minimum_size = Vector2(0, 230)
-	_chart.draw.connect(_draw_chart)
-	prog.add_child(_chart)
-	_last_label = UI.label(_last_text, 13, INK_MUTED, 400, true)
-	prog.add_child(_last_label)
-	_refresh_grownups()
+	_tab_body = VBoxContainer.new()
+	_tab_body.add_theme_constant_override("separation", 12)
+	_tab_body.size_flags_vertical = SIZE_EXPAND_FILL
+	col.add_child(_tab_body)
+	_show_settings_tab(_settings_tab)
 
 
 func _close_grownups() -> void:
@@ -536,67 +466,246 @@ func _close_grownups() -> void:
 		_grownups = null
 
 
-func _panel(parent: Control, heading: String, icon: String, color: Color) -> VBoxContainer:
+func _show_settings_tab(i: int) -> void:
+	_settings_tab = i
+	for k in _tab_row.get_child_count():
+		(_tab_row.get_child(k) as Button).set_pressed_no_signal(k == i)
+	for c in _tab_body.get_children():
+		c.queue_free()
+	match i:
+		0: _general_tab()
+		1: _filters_tab()
+		2: _iris_tab()
+		3: _history_tab()
+
+
+## A segment in a segmented control: plain text, or a white thumb when selected.
+func _segment(text: String, group: ButtonGroup) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.toggle_mode = true
+	b.button_group = group
+	b.focus_mode = FOCUS_NONE
+	b.mouse_default_cursor_shape = CURSOR_POINTING_HAND
+	b.add_theme_font_size_override("font_size", 14)
+	b.add_theme_font_override("font", UI.font(600))
+	for key in ["font_color", "font_hover_color"]:
+		b.add_theme_color_override(key, INK_MUTED)
+	for key in ["font_pressed_color", "font_hover_pressed_color"]:
+		b.add_theme_color_override(key, INK)
+	var plain := UI.box(Color(0, 0, 0, 0), 9, 7)
+	var hover := UI.box(Color(1, 1, 1, 0.4), 9, 7)
+	var thumb := UI.box(Color.WHITE, 9, 7)
+	thumb.shadow_color = Color(0, 0, 0, 0.1)
+	thumb.shadow_size = 4
+	thumb.shadow_offset = Vector2(0, 1)
+	b.add_theme_stylebox_override("normal", plain)
+	b.add_theme_stylebox_override("hover", hover)
+	b.add_theme_stylebox_override("pressed", thumb)
+	b.add_theme_stylebox_override("hover_pressed", thumb)
+	return b
+
+
+## White group card with a heading and an optional one-line explanation.
+func _group(heading: String, note := "") -> VBoxContainer:
 	var p := PanelContainer.new()
 	p.add_theme_stylebox_override("panel", UI.box(Color.WHITE, 16, 18))
-	parent.add_child(p)
+	_tab_body.add_child(p)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
 	p.add_child(v)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 8)
-	var ic := TextureRect.new()
-	ic.texture = Icons.tex(icon, 20, color)
-	ic.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-	h.add_child(ic)
-	h.add_child(UI.label(heading, 16, INK, 600))
-	v.add_child(h)
+	v.add_child(UI.label(heading, 16, INK, 600))
+	if note != "":
+		var n := UI.label(note, 13, INK_MUTED, 400, true)
+		n.custom_minimum_size = Vector2(520, 0)
+		v.add_child(n)
 	return v
 
 
-func _stepper(value_label: Label, minus: Callable, plus: Callable) -> HBoxContainer:
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 8)
-	var m := UI.apple_button("", "minus", "gray", UI.SYS_BLUE, 14, 36.0)
-	m.icon = Icons.tex("minus", 16, Color.WHITE)
-	m.add_theme_color_override("icon_normal_color", INK)
-	m.add_theme_color_override("icon_hover_color", INK)
-	m.pressed.connect(minus)
-	h.add_child(m)
-	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	value_label.size_flags_horizontal = SIZE_EXPAND_FILL
-	h.add_child(value_label)
-	var p := UI.apple_button("", "plus", "gray", UI.SYS_BLUE, 14, 36.0)
-	p.icon = Icons.tex("plus", 16, Color.WHITE)
-	p.add_theme_color_override("icon_normal_color", INK)
-	p.add_theme_color_override("icon_hover_color", INK)
-	p.pressed.connect(plus)
-	h.add_child(p)
-	return h
-
-
-func _set_setting(key: String, value: Variant) -> void:
-	Lab.settings[key] = value
-	Lab.save_data()
-	_refresh_grownups()
-
-
-func _refresh_grownups() -> void:
-	if _grownups == null:
-		return
-	_dist_label.text = "%d cm" % int(Lab.settings["distance_cm"])
-	_goal_value.text = "%d min" % int(Lab.settings["daily_filter_goal_min"])
+func _general_tab() -> void:
+	var view := _group("Viewing setup", "Tests draw things at a true visual angle, so these need to match how the player sits.")
+	var dist := _row(view, "Distance from eyes to screen")
+	dist.add_child(_stepper("%d cm" % int(Lab.settings["distance_cm"]),
+		func(): _set_setting("distance_cm", clampf(float(Lab.settings["distance_cm"]) - 5, 20, 400)),
+		func(): _set_setting("distance_cm", clampf(float(Lab.settings["distance_cm"]) + 5, 20, 400))))
+	var eye_row := _row(view, "Eye being tested")
+	var eyes := HBoxContainer.new()
+	eyes.add_theme_constant_override("separation", 0)
+	var seg_bg := PanelContainer.new()
+	seg_bg.add_theme_stylebox_override("panel", UI.box(UI.FILL, 10, 2))
+	seg_bg.add_child(eyes)
+	var group := ButtonGroup.new()
+	for e in ["Both", "Left", "Right"]:
+		var b := _segment(e, group)
+		b.custom_minimum_size = Vector2(70, 0)
+		b.button_pressed = Lab.settings["eye"] == e
+		b.pressed.connect(func(): _set_setting("eye", e))
+		eyes.add_child(b)
+	eye_row.add_child(seg_bg)
+	var cal := _row(view, "")
+	var cal_text := UI.label("", 14, INK, 400, true)
 	if Lab.is_calibrated():
-		_calib_chip.text = " CALIBRATED "
-		_calib_chip.add_theme_stylebox_override("normal", UI.box(UI.GREEN, 6, 3))
-		_calib_text.text = "1° of vision = %.0f px at %d cm" % [Lab.px_per_deg(), int(Lab.settings["distance_cm"])]
+		cal_text.text = "Calibrated: 1° of vision is %.0f px at %d cm." % [Lab.px_per_deg(), int(Lab.settings["distance_cm"])]
 	else:
-		_calib_chip.text = " NOT CALIBRATED "
-		_calib_chip.add_theme_stylebox_override("normal", UI.box(UI.ORANGE, 6, 3))
-		_calib_text.text = "Sizes are estimated. Calibrate for accurate tests."
+		cal_text.text = "Not calibrated yet, so sizes are estimated."
+		cal_text.add_theme_color_override("font_color", UI.CORAL.darkened(0.15))
+	cal_text.size_flags_horizontal = SIZE_EXPAND_FILL
+	cal.get_child(0).queue_free()
+	cal.add_child(cal_text)
+	var calib := UI.apple_button("Calibrate with a card", "card", "tinted", UI.ACCENT, 14, 34.0)
+	calib.icon = Icons.tex("card", 16, Color.WHITE)
+	calib.pressed.connect(func():
+		_close_grownups()
+		_launch({"key": "calibrate", "script": "res://exercises/calibrate.gd", "icon": "card"}, UI.CORAL))
+	cal.add_child(calib)
 
-	var prev: String = _metric_ids[_metric.selected] if _metric.selected >= 0 and _metric.selected < _metric_ids.size() else ""
-	_metric.clear()
+	var app := _group("App")
+	var goal := _row(app, "Daily goal with a filter on")
+	goal.add_child(_stepper("%d min" % int(Lab.settings["daily_filter_goal_min"]),
+		func(): _set_setting("daily_filter_goal_min", clampf(float(Lab.settings["daily_filter_goal_min"]) - 15, 15, 480)),
+		func(): _set_setting("daily_filter_goal_min", clampf(float(Lab.settings["daily_filter_goal_min"]) + 15, 15, 480))))
+	var snd := _row(app, "Interface sounds")
+	snd.add_child(_toggle(Sfx.enabled, func(on): Sfx.set_enabled(on)))
+
+
+func _filters_tab() -> void:
+	var hp := _group("High-pass (frequency patching)", "Removes coarse shapes and keeps fine detail.")
+	_param_slider(hp, "Cutoff", "hp_lod")
+	_param_slider(hp, "Contrast boost", "hp_gain", 0.5, 4.0, 0.1, func(v): return "%.1f×" % v)
+	_param_slider(hp, "Coarse shapes kept", "hp_keep", 0.0, 1.0, 0.05, func(v): return "%d%%" % roundi(v * 100))
+	var lp := _group("Low-pass", "Blurs away fine detail and keeps coarse shapes.")
+	_param_slider(lp, "Cutoff", "lp_lod")
+	_param_slider(lp, "Strength", "lp_mix", 0.0, 1.0, 0.05, func(v): return "%d%%" % roundi(v * 100))
+	var foot := HBoxContainer.new()
+	foot.add_theme_constant_override("separation", 12)
+	var note := UI.label("Changes apply right away, in Eye Lab and on the whole screen. Edges uses the high-pass settings.", 12, INK_MUTED, 400, true)
+	note.size_flags_horizontal = SIZE_EXPAND_FILL
+	foot.add_child(note)
+	var reset := UI.apple_button("Reset to defaults", "", "gray", INK, 13, 32.0)
+	reset.size_flags_vertical = SIZE_SHRINK_CENTER
+	reset.pressed.connect(func():
+		Filter.reset_params()
+		_show_settings_tab(1))
+	foot.add_child(reset)
+	_tab_body.add_child(foot)
+
+
+## Slider row bound to one Filter.params entry. Cutoff sliders ("*_lod") run
+## coarse to fine left to right and show the cutoff in cycles per degree.
+func _param_slider(parent: Control, text: String, key: String, lo := 0.5, hi := 7.0, step := 0.25, fmt := Callable()) -> void:
+	var is_cutoff := key.ends_with("_lod")
+	var row := _row(parent, text)
+	var name_label := row.get_child(0) as Label
+	name_label.size_flags_horizontal = SIZE_FILL
+	name_label.custom_minimum_size = Vector2(150, 0)
+	var value := UI.label("", 13, INK_MUTED, 500)
+	value.custom_minimum_size = Vector2(64, 0)
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	var show_value := func(v: float):
+		value.text = "≈%.1f c/°" % Filter.lod_to_cpd(v) if is_cutoff else str(fmt.call(v))
+	var sl := HSlider.new()
+	sl.custom_minimum_size = Vector2(160, 20)
+	sl.size_flags_vertical = SIZE_SHRINK_CENTER
+	sl.focus_mode = FOCUS_NONE
+	sl.min_value = lo
+	sl.max_value = hi
+	sl.step = step
+	var cur := float(Filter.params[key])
+	sl.value = (lo + hi - cur) if is_cutoff else cur
+	show_value.call(cur)
+	sl.value_changed.connect(func(v):
+		var real: float = (lo + hi - v) if is_cutoff else v
+		Filter.set_param(key, real)
+		show_value.call(real))
+	sl.size_flags_horizontal = SIZE_EXPAND_FILL
+	if is_cutoff:
+		sl.tooltip_text = "Left: coarser cutoff. Right: finer cutoff."
+	# Fixed-width end captions (blank on non-cutoff rows) keep every slider aligned.
+	var left := UI.label("Coarse" if is_cutoff else "", 12, INK_MUTED)
+	left.custom_minimum_size = Vector2(46, 0)
+	left.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(left)
+	row.add_child(sl)
+	var right := UI.label("Fine" if is_cutoff else "", 12, INK_MUTED)
+	right.custom_minimum_size = Vector2(30, 0)
+	row.add_child(right)
+	row.add_child(value)
+
+
+func _iris_tab() -> void:
+	var g := _group("Claude API key", "Iris runs on Claude. Paste an API key from your Anthropic account to use it for Iris. The key stays on this Mac and is sent with each chat request to the Eye Lab server, which uses it for that request only and never stores it.")
+	var field := LineEdit.new()
+	field.secret = true
+	field.placeholder_text = "sk-ant-..."
+	field.text = Iris.api_key
+	field.custom_minimum_size = Vector2(0, 40)
+	field.add_theme_font_size_override("font_size", 14)
+	g.add_child(field)
+	var status := UI.label("", 13, INK_MUTED, 400, true)
+	var show_status := func():
+		match Iris.key_source():
+			"own":
+				status.text = "Using your key (ending in %s)." % Iris.api_key.right(4)
+				status.add_theme_color_override("font_color", UI.SUCCESS.darkened(0.1))
+			"shared":
+				status.text = "No key set. Iris uses this build's shared access."
+				status.add_theme_color_override("font_color", INK_MUTED)
+			_:
+				status.text = "No key set. Iris stays off until you add one."
+				status.add_theme_color_override("font_color", UI.CORAL.darkened(0.15))
+	show_status.call()
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var save := UI.apple_button("Save key", "", "filled", UI.ACCENT, 14, 34.0)
+	var save_key := func():
+		var k := field.text.strip_edges()
+		if k != "" and not k.begins_with("sk-ant-"):
+			status.text = "That doesn't look like a Claude API key. They start with sk-ant-."
+			status.add_theme_color_override("font_color", UI.CORAL.darkened(0.15))
+			return
+		Iris.set_api_key(k)
+		Iris.reset()
+		show_status.call()
+	save.pressed.connect(save_key)
+	field.text_submitted.connect(func(_t): save_key.call())
+	row.add_child(save)
+	var clear := UI.apple_button("Remove", "", "gray", INK, 14, 34.0)
+	clear.pressed.connect(func():
+		field.text = ""
+		Iris.set_api_key("")
+		show_status.call())
+	row.add_child(clear)
+	var sp := Control.new()
+	sp.size_flags_horizontal = SIZE_EXPAND_FILL
+	row.add_child(sp)
+	var get_key := UI.apple_button("Get a key", "", "plain", UI.ACCENT, 14, 34.0)
+	get_key.tooltip_text = "Opens console.anthropic.com in your browser"
+	get_key.pressed.connect(func(): OS.shell_open("https://console.anthropic.com/settings/keys"))
+	row.add_child(get_key)
+	g.add_child(row)
+	g.add_child(status)
+
+
+func _history_tab() -> void:
+	var g := _group("Test history", "Results from the eye check-up and games over time.")
+	_metric = OptionButton.new()
+	_metric.focus_mode = FOCUS_NONE
+	for st in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
+		var ob := UI.box(UI.FILL if st != "hover" else Color(UI.FILL, 0.2), 10, 8)
+		ob.content_margin_left = 12
+		_metric.add_theme_stylebox_override(st, ob)
+	for key in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
+		_metric.add_theme_color_override(key, INK)
+	_metric.add_theme_color_override("font_disabled_color", INK_MUTED)
+	_metric.add_theme_font_size_override("font_size", 14)
+	_metric.item_selected.connect(func(_i): _chart.queue_redraw())
+	g.add_child(_metric)
+	_chart = Control.new()
+	_chart.custom_minimum_size = Vector2(0, 260)
+	_chart.draw.connect(_draw_chart)
+	g.add_child(_chart)
+	if _last_text != "":
+		g.add_child(UI.label(_last_text, 13, INK_MUTED, 400, true))
 	_metric_ids.clear()
 	for r in Lab.results:
 		if r["id"] not in _metric_ids:
@@ -605,15 +714,74 @@ func _refresh_grownups() -> void:
 	if _metric_ids.is_empty():
 		_metric.add_item("No results yet")
 		_metric.disabled = true
-	else:
-		_metric.disabled = false
-		_metric.selected = maxi(0, _metric_ids.find(prev))
-	_chart.queue_redraw()
+
+
+## Labelled row: text on the left, controls appended on the right.
+func _row(parent: Control, text: String) -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 10)
+	h.custom_minimum_size = Vector2(0, 36)
+	var l := UI.label(text, 14, INK)
+	l.size_flags_horizontal = SIZE_EXPAND_FILL
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	h.add_child(l)
+	parent.add_child(h)
+	return h
+
+
+func _stepper(value: String, minus: Callable, plus: Callable) -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 6)
+	for spec in [["minus", minus], ["", null], ["plus", plus]]:
+		if spec[0] == "":
+			var v := UI.label(value, 15, INK, 600)
+			v.custom_minimum_size = Vector2(76, 0)
+			v.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			v.size_flags_vertical = SIZE_SHRINK_CENTER
+			h.add_child(v)
+			continue
+		var b := UI.apple_button("", spec[0], "gray", INK, 14, 32.0)
+		b.icon = Icons.tex(spec[0], 14, Color.WHITE)
+		b.add_theme_color_override("icon_normal_color", INK)
+		b.add_theme_color_override("icon_hover_color", INK)
+		b.add_theme_color_override("icon_pressed_color", INK)
+		b.pressed.connect(spec[1])
+		h.add_child(b)
+	return h
+
+
+## iOS-style switch.
+func _toggle(on: bool, changed: Callable) -> Button:
+	var t := Button.new()
+	t.toggle_mode = true
+	t.button_pressed = on
+	t.focus_mode = FOCUS_NONE
+	t.mouse_default_cursor_shape = CURSOR_POINTING_HAND
+	t.custom_minimum_size = Vector2(46, 28)
+	t.size_flags_vertical = SIZE_SHRINK_CENTER
+	for st in ["normal", "hover", "pressed", "hover_pressed", "focus"]:
+		t.add_theme_stylebox_override(st, StyleBoxEmpty.new())
+	t.draw.connect(func():
+		var lit := t.button_pressed
+		t.draw_style_box(UI.box(UI.ACCENT if lit else Color(UI.FILL, 0.25), 14, 0), Rect2(Vector2.ZERO, t.size))
+		var kx := t.size.x - 14.0 if lit else 14.0
+		t.draw_circle(Vector2(kx, 14.5), 12.5, Color(0, 0, 0, 0.08))
+		t.draw_circle(Vector2(kx, 14), 12, Color.WHITE))
+	t.toggled.connect(func(v):
+		changed.call(v)
+		t.queue_redraw())
+	return t
+
+
+func _set_setting(key: String, value: Variant) -> void:
+	Lab.settings[key] = value
+	Lab.save_data()
+	_show_settings_tab(_settings_tab)
 
 
 func _draw_chart() -> void:
 	var r := Rect2(Vector2.ZERO, _chart.size)
-	_chart.draw_style_box(UI.box(Color(0.47, 0.47, 0.5, 0.08), 12, 0), r)
+	_chart.draw_style_box(UI.box(Color(UI.FILL, 0.06), 12, 0), r)
 	var font := ThemeDB.fallback_font
 	if _metric_ids.is_empty():
 		_chart.draw_string(font, Vector2(16, r.size.y / 2.0), "Finish a test and results will appear here.", HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 32, 13, INK_MUTED)
@@ -638,10 +806,10 @@ func _draw_chart() -> void:
 		var gy := plot.position.y + plot.size.y * g / 2.0
 		_chart.draw_line(Vector2(plot.position.x, gy), Vector2(plot.end.x, gy), Color(0, 0, 0, 0.06))
 	if pts.size() > 1:
-		_chart.draw_polyline(pts, UI.SYS_INDIGO, 2.5, true)
+		_chart.draw_polyline(pts, UI.ACCENT, 2.5, true)
 	for p in pts:
 		_chart.draw_circle(p, 4.5, Color.WHITE)
-		_chart.draw_circle(p, 3.5, UI.SYS_INDIGO)
+		_chart.draw_circle(p, 3.5, UI.ACCENT)
 	_chart.draw_string(font, Vector2(8, plot.position.y + 4), "%.2f" % hi, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, INK_MUTED)
 	_chart.draw_string(font, Vector2(8, plot.end.y + 4), "%.2f" % lo, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, INK_MUTED)
 	var better := "higher is better" if HIGHER_IS_BETTER.get(mid, false) else "lower is better"
@@ -764,7 +932,7 @@ func _on_finished(summary: Dictionary) -> void:
 
 
 ## Screenshot hook for testing:
-##   Godot --path . -- --shot=odd_color --filter=1 --out=/tmp/x.png [--wait=1.5] [--intro] [--grownups]
+##   Godot --path . -- --shot=odd_color --filter=1 --out=/tmp/x.png [--wait=1.5] [--intro] [--grownups[=tab]]
 func _handle_cli() -> void:
 	var args := {}
 	for a in OS.get_cmdline_user_args():
@@ -793,7 +961,7 @@ func _handle_cli() -> void:
 	if args.has("filter"):
 		Filter.set_mode(int(args["filter"]))
 	if args.has("grownups"):
-		_open_grownups()
+		_open_grownups(int(args["grownups"]) if args["grownups"] != "" else -1)
 	if args.has("profile"):
 		_open_profile()
 	if args.has("chat"):

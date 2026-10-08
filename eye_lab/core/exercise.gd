@@ -14,7 +14,7 @@ var title := ""
 var instructions := ""          # optional extra note under the steps
 var steps: Array = []           # "How to play" steps shown before the game starts
 var icon := "eye"
-var accent := UI.BLUE
+var accent := UI.ACCENT
 var config := {}
 var trophies := 0
 var started := false
@@ -59,7 +59,7 @@ func _begin() -> void:
 
 
 func _draw_scene() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), UI.BG)
+	draw_rect(Rect2(Vector2.ZERO, size), Color("f4f3ef"))
 
 
 func _on_input(_event: InputEvent) -> void:
@@ -196,8 +196,18 @@ func _build_chrome() -> void:
 	_hud.hide()
 	ui.add_child(_hud)
 
-	var back := UI.apple_button("Lab", "arrow_left", "filled", Color(0.11, 0.11, 0.13, 0.72), 15, 38.0)
-	back.tooltip_text = "Stop and go back to the lab (Esc)"
+	var back := UI.apple_button("Home", "arrow_left", "gray", UI.LABEL, 15, 38.0)
+	back.icon = Icons.tex("arrow_left", 18, Color.WHITE)
+	for st in ["normal", "hover", "pressed", "hover_pressed"]:
+		var bsb := UI.box(Color(1, 1, 1, 0.94 if st == "normal" else 1.0), 19, 0)
+		bsb.content_margin_left = 14
+		bsb.content_margin_right = 18
+		bsb.shadow_color = Color(0, 0, 0, 0.08)
+		bsb.shadow_size = 8
+		bsb.shadow_offset = Vector2(0, 2)
+		back.add_theme_stylebox_override(st, bsb)
+	UI.add_press_feel(back)
+	back.tooltip_text = "Stop and go back home (Esc)"
 	back.position = Vector2(16, 12)
 	back.pressed.connect(end)
 	_hud.add_child(back)
@@ -205,10 +215,10 @@ func _build_chrome() -> void:
 	var trow := HBoxContainer.new()
 	trow.add_theme_constant_override("separation", 6)
 	var ti := TextureRect.new()
-	ti.texture = Icons.tex("trophy", 20, UI.YELLOW)
+	ti.texture = Icons.tex("trophy", 20, UI.GOLD)
 	ti.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 	trow.add_child(ti)
-	_trophy_label = UI.label("0", 18, UI.TEXT, 700)
+	_trophy_label = UI.label("0", 18, UI.LABEL, 700)
 	trow.add_child(_trophy_label)
 	var tp := _material(trow)
 	tp.grow_horizontal = GROW_DIRECTION_BEGIN
@@ -216,7 +226,7 @@ func _build_chrome() -> void:
 	tp.tooltip_text = "Correct answers this session"
 	_hud.add_child(tp)
 
-	_status = UI.label("", 15, UI.TEXT)
+	_status = UI.label("", 15, UI.LABEL)
 	_status_pill = _material(_status)
 	_status_pill.grow_vertical = GROW_DIRECTION_BEGIN
 	_status_pill.set_anchors_and_offsets_preset(PRESET_BOTTOM_LEFT, PRESET_MODE_MINSIZE, 16)
@@ -254,15 +264,9 @@ const INK := UI.LABEL
 const INK_MUTED := UI.LABEL_2
 
 
-## Dark translucent capsule for readouts over the game (reads on any background).
+## White capsule for readouts over the game, matching the filter bar.
 func _material(content: Control) -> PanelContainer:
-	var p := PanelContainer.new()
-	var sb := UI.box(Color(0.11, 0.11, 0.13, 0.72), 19, 8)
-	sb.content_margin_left = 14
-	sb.content_margin_right = 14
-	p.add_theme_stylebox_override("panel", sb)
-	p.add_child(content)
-	return p
+	return UI.pill(content)
 
 
 ## Warm dimmed backdrop with a white card: badge, kicker, title, numbered steps,
@@ -270,13 +274,13 @@ func _material(content: Control) -> PanelContainer:
 func _card(card_icon: String, kicker: String, heading: String, step_list: Array, note: String,
 		buttons: Array, sub_line := "") -> Control:
 	var dim := ColorRect.new()
-	dim.color = Color(0.06, 0.06, 0.1, 0.38)
+	dim.color = UI.DIM
 	dim.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	dim.add_child(center)
 	var panel := PanelContainer.new()
-	var sb := UI.box(Color(1, 1, 1, 0.97), 26, 32)
+	var sb := UI.box(UI.SHEET, 26, 32)
 	sb.shadow_color = Color(0, 0, 0, 0.18)
 	sb.shadow_size = 40
 	sb.shadow_offset = Vector2(0, 14)
@@ -289,7 +293,7 @@ func _card(card_icon: String, kicker: String, heading: String, step_list: Array,
 
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 18)
-	var badge := UI.icon_tile(card_icon, UI.SYS_ORANGE if card_icon == "trophy" else accent, 64.0)
+	var badge := UI.icon_tile(card_icon, UI.GOLD if card_icon == "trophy" else accent, 64.0)
 	badge.size_flags_vertical = SIZE_SHRINK_CENTER
 	head.add_child(badge)
 	var hv := VBoxContainer.new()
@@ -329,7 +333,7 @@ func _card(card_icon: String, kicker: String, heading: String, step_list: Array,
 	row.add_theme_constant_override("separation", 12)
 	row.alignment = BoxContainer.ALIGNMENT_END
 	for b in buttons:
-		var btn := UI.apple_button(b["text"], b["icon"], "gray" if b["kind"] == "light" else "filled", accent, 16, 46.0)
+		var btn := UI.apple_button(b["text"], b["icon"], "gray" if b["kind"] == "light" else "filled", UI.ACCENT, 16, 46.0)
 		if b["kind"] == "light":
 			btn.icon = Icons.tex(b["icon"], 18, Color.WHITE)
 			for key in ["icon_normal_color", "icon_hover_color", "icon_pressed_color"]:

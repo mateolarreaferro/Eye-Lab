@@ -1,9 +1,9 @@
 """Procedurally builds the Vision Quest city-maze and exports:
-  - vr_game/environment/city.glb        (the geometry)
-  - vr_game/environment/city_maze.json  (the maze graph, for gameplay logic)
+  - contrib/vision_quest_vr/environment/city.glb        (the geometry)
+  - contrib/vision_quest_vr/environment/city_maze.json  (the maze graph, for gameplay logic)
 
 Run headless, no Blender GUI needed:
-    blender --background --python vr_game/tools/generate_city.py
+    blender --background --python contrib/vision_quest_vr/tools/generate_city.py
 
 Regenerate any time by re-running -- it clears the scene first. Tweak
 GRID_SIZE / BLOCK_SIZE / colors / density below and re-run to change the
@@ -11,7 +11,7 @@ city; MAZE_SEED controls the maze layout specifically.
 
 Style: a European canal-town look (steep gabled roofs, warm stucco walls,
 cobblestone streets, a canal along the south edge) rather than a generic
-grid -- see vr_game/README.md for why (a request for Marble/Gaussian-splat
+grid -- see contrib/vision_quest_vr/README.md for why (a request for Marble/Gaussian-splat
 level photorealism was scoped down to this: mesh-based, so it still works
 as a real, collidable maze).
 

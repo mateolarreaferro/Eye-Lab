@@ -63,15 +63,15 @@ func _on_input(event: InputEvent) -> void:
 
 
 func _draw_scene() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), UI.BG)
+	draw_rect(Rect2(Vector2.ZERO, size), Color("f4f3ef"))
 	if not started or _ended:
 		return
 	var h := card_w * CARD_H_CM / CARD_W_CM
 	var r := Rect2((size - Vector2(card_w, h)) / 2.0 - Vector2(0, 80), Vector2(card_w, h))
-	draw_rect(r, UI.BLUE.darkened(0.2))
-	draw_rect(r, Color.WHITE, false, 2.0)
-	draw_prompt("Match the width of a bank card", r.position.y - 24, UI.MUTED, 18)
-	draw_prompt("%.1f px per cm" % (card_w / CARD_W_CM), r.end.y + 36, UI.TEXT, 18)
+	draw_rect(r, Color(UI.ACCENT, 0.18))
+	draw_rect(r, UI.ACCENT, false, 2.0)
+	draw_prompt("Match the width of a bank card", r.position.y - 24, UI.LABEL_2, 18)
+	draw_prompt("%.1f px per cm" % (card_w / CARD_W_CM), r.end.y + 36, UI.LABEL, 18)
 
 
 func _summary() -> Dictionary:

@@ -1,33 +1,25 @@
 class_name UI
 ## Shared look: palette, theme, fonts and button factories.
 
-const BG := Color("120e26")
-const SURFACE := Color("1c1738")
-const SURFACE_2 := Color("272048")
-const SURFACE_3 := Color("342b5c")
-const TEXT := Color("f3f0ff")
-const MUTED := Color("a39cc4")
-const BLUE := Color("4fa3ff")
-const GREEN := Color("5fd068")
-const PURPLE := Color("b07cff")
-const ORANGE := Color("ff9f43")
-const RED := Color("ff5d73")
-const YELLOW := Color("ffd23f")
-
-# Apple system colours (light appearance).
-const LABEL := Color("2d2a32")
-const LABEL_2 := Color("7a7080")
-const LABEL_3 := Color("b8b0bd")
-const FILL := Color(0.47, 0.47, 0.5, 0.12)
+# One palette for the whole app: dark ink on white cards over the sunset gradient,
+# a single orange accent for actions, and four section hues that run from sunset
+# to dusk so they sit with the background instead of fighting it.
+const LABEL := Color("2d2a32")         # primary text (ink)
+const LABEL_2 := Color("7a7080")       # secondary text
+const LABEL_3 := Color("b8b0bd")       # hints, disabled
+const FILL := Color(0.47, 0.42, 0.5, 0.12)     # neutral control fill
 const SEPARATOR := Color(0, 0, 0, 0.08)
-const SYS_BLUE := Color("4a7cf5")
-const SYS_GREEN := Color("2fb88f")
-const SYS_INDIGO := Color("8e6cef")
-const SYS_PURPLE := Color("8e6cef")
-const SYS_ORANGE := Color("f47d31")
-const ACCENT := Color("f47d31")        # Headspace orange: primary actions
-const SYS_PINK := Color("f06fa6")
-const SYS_TEAL := Color("30b0c7")
+const CARD := Color(1, 1, 1, 0.94)     # white card on the gradient
+const SHEET := Color("faf8f7")         # modal sheet background
+const DIM := Color(0.3, 0.12, 0.18, 0.16)      # warm scrim behind sheets and cards
+
+const ACCENT := Color("f47d31")        # primary actions, toggles, sliders
+const CORAL := Color("ec6448")         # Eye check-up
+const ROSE := Color("de4f86")          # Spot the odd one
+const PLUM := Color("9156c4")          # Brain games
+const INDIGO := Color("5160d4")        # Magic glasses
+const GOLD := Color("f2a516")          # trophies
+const SUCCESS := Color("2fa37f")       # done, calibrated, goal met
 
 static var _fonts := {}
 
@@ -90,7 +82,7 @@ static func make_theme() -> Theme:
 	t.default_font = font(400)
 	t.default_font_size = 16
 
-	t.set_color("font_color", "Label", TEXT)
+	t.set_color("font_color", "Label", LABEL)
 
 	var bpad := func(sb: StyleBoxFlat) -> StyleBoxFlat:
 		sb.content_margin_left = 16
@@ -98,49 +90,59 @@ static func make_theme() -> Theme:
 		sb.content_margin_top = 10
 		sb.content_margin_bottom = 10
 		return sb
-	t.set_stylebox("normal", "Button", bpad.call(box(SURFACE_2, 12)))
-	t.set_stylebox("hover", "Button", bpad.call(box(SURFACE_3, 12)))
-	t.set_stylebox("pressed", "Button", bpad.call(box(BLUE.darkened(0.35), 12)))
-	t.set_stylebox("hover_pressed", "Button", bpad.call(box(BLUE.darkened(0.25), 12)))
-	t.set_stylebox("disabled", "Button", bpad.call(box(SURFACE_2.darkened(0.2), 12)))
+	t.set_stylebox("normal", "Button", bpad.call(box(FILL, 12)))
+	t.set_stylebox("hover", "Button", bpad.call(box(Color(FILL, 0.2), 12)))
+	t.set_stylebox("pressed", "Button", bpad.call(box(Color(FILL, 0.28), 12)))
+	t.set_stylebox("hover_pressed", "Button", bpad.call(box(Color(FILL, 0.28), 12)))
+	t.set_stylebox("disabled", "Button", bpad.call(box(Color(FILL, 0.06), 12)))
 	t.set_stylebox("focus", "Button", StyleBoxEmpty.new())
-	t.set_color("font_color", "Button", TEXT)
-	t.set_color("font_hover_color", "Button", Color.WHITE)
-	t.set_color("font_pressed_color", "Button", Color.WHITE)
-	t.set_color("font_disabled_color", "Button", MUTED.darkened(0.3))
-	t.set_color("icon_normal_color", "Button", TEXT)
-	t.set_color("icon_hover_color", "Button", Color.WHITE)
-	t.set_color("icon_pressed_color", "Button", Color.WHITE)
+	for key in ["font_color", "font_hover_color", "font_pressed_color", "icon_normal_color", "icon_hover_color", "icon_pressed_color"]:
+		t.set_color(key, "Button", LABEL)
+	t.set_color("font_disabled_color", "Button", LABEL_3)
 	t.set_constant("h_separation", "Button", 10)
 
-	t.set_stylebox("panel", "PanelContainer", box(SURFACE, 18, 22))
-	t.set_stylebox("panel", "PopupMenu", box(SURFACE_2, 10, 8))
-	t.set_stylebox("hover", "PopupMenu", box(SURFACE_3, 8, 6))
-	t.set_color("font_color", "PopupMenu", TEXT)
+	t.set_stylebox("panel", "PanelContainer", box(Color.WHITE, 18, 22))
+	t.set_stylebox("panel", "PopupMenu", box(Color.WHITE, 10, 8))
+	t.set_stylebox("hover", "PopupMenu", box(Color(ACCENT, 0.12), 8, 6))
+	t.set_color("font_color", "PopupMenu", LABEL)
+	t.set_color("font_hover_color", "PopupMenu", LABEL)
 
-	var bar_bg := box(SURFACE_3, 6, 0)
-	var bar_fill := box(GREEN, 6, 0)
-	t.set_stylebox("background", "ProgressBar", bar_bg)
-	t.set_stylebox("fill", "ProgressBar", bar_fill)
+	t.set_stylebox("background", "ProgressBar", box(Color(0, 0, 0, 0.08), 6, 0))
+	t.set_stylebox("fill", "ProgressBar", box(ACCENT, 6, 0))
 
-	var slider := box(SURFACE_3, 4, 0)
-	slider.content_margin_top = 3
-	slider.content_margin_bottom = 3
+	var slider := box(Color(0, 0, 0, 0.1), 3, 0)
+	slider.content_margin_top = 2
+	slider.content_margin_bottom = 2
 	t.set_stylebox("slider", "HSlider", slider)
-	var area := box(BLUE, 4, 0)
-	area.content_margin_top = 3
-	area.content_margin_bottom = 3
+	var area := box(ACCENT, 3, 0)
+	area.content_margin_top = 2
+	area.content_margin_bottom = 2
 	t.set_stylebox("grabber_area", "HSlider", area)
 	t.set_stylebox("grabber_area_highlight", "HSlider", area)
-	t.set_icon("grabber", "HSlider", _dot(9, Color.WHITE))
-	t.set_icon("grabber_highlight", "HSlider", _dot(10, Color.WHITE))
+	t.set_icon("grabber", "HSlider", _knob(10))
+	t.set_icon("grabber_highlight", "HSlider", _knob(11))
 
-	t.set_color("font_color", "TooltipLabel", TEXT)
-	t.set_stylebox("panel", "TooltipPanel", box(SURFACE_3, 8, 8))
+	t.set_color("font_color", "TooltipLabel", LABEL)
+	t.set_stylebox("panel", "TooltipPanel", box(Color.WHITE, 8, 8))
+
+	var field := box(FILL, 10, 10)
+	field.content_margin_left = 12
+	field.content_margin_right = 12
+	var field_focus := box(Color.WHITE, 10, 10, ACCENT)
+	field_focus.set_border_width_all(1)
+	field_focus.content_margin_left = 12
+	field_focus.content_margin_right = 12
+	t.set_stylebox("normal", "LineEdit", field)
+	t.set_stylebox("focus", "LineEdit", field_focus)
+	t.set_color("font_color", "LineEdit", LABEL)
+	t.set_color("font_placeholder_color", "LineEdit", LABEL_3)
+	t.set_color("caret_color", "LineEdit", ACCENT)
+	t.set_color("selection_color", "LineEdit", Color(ACCENT, 0.25))
 	return t
 
 
-static func _dot(r: int, col: Color) -> Texture2D:
+## White slider knob with a faint outline so it reads on white cards.
+static func _knob(r: int) -> Texture2D:
 	var s := Lab.ui_scale()
 	var n := int(ceil(r * 2 * s))
 	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
@@ -148,13 +150,15 @@ static func _dot(r: int, col: Color) -> Texture2D:
 	for y in n:
 		for x in n:
 			var d := Vector2(x + 0.5, y + 0.5).distance_to(c)
-			img.set_pixel(x, y, Color(col, clampf(r * s - d + 0.5, 0.0, 1.0)))
+			var a := clampf(r * s - d + 0.5, 0.0, 1.0)
+			var rim := clampf(d - (r - 1.0) * s + 0.5, 0.0, 1.0)
+			img.set_pixel(x, y, Color(Color.WHITE.lerp(Color(0.78, 0.75, 0.8), rim), a))
 	var t := ImageTexture.create_from_image(img)
 	t.set_size_override(Vector2i(r * 2, r * 2))
 	return t
 
 
-static func label(text: String, size := 16, col := TEXT, weight := 400, wrap := false) -> Label:
+static func label(text: String, size := 16, col := LABEL, weight := 400, wrap := false) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.add_theme_font_size_override("font_size", size)
@@ -166,71 +170,52 @@ static func label(text: String, size := 16, col := TEXT, weight := 400, wrap := 
 	return l
 
 
-## kind: "primary" (filled accent), "secondary" (surface), "ghost" (transparent).
-static func button(text: String, icon := "", kind := "secondary", accent := BLUE, font_size := 16) -> Button:
+## Large answer button with the icon above the label: a white card with ink text,
+## tinted with the game's colour while pressed. Sits above the filter, so it stays
+## readable over any stimulus.
+static func choice(text: String, icon := "", accent := ACCENT, icon_tex: Texture2D = null, size := Vector2(120, 104)) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.focus_mode = Control.FOCUS_NONE
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	b.add_theme_font_size_override("font_size", font_size)
+	b.add_theme_font_size_override("font_size", 15)
 	b.add_theme_font_override("font", font(600))
-	if icon != "":
-		b.icon = Icons.tex(icon, font_size + 4, Color.WHITE)
-	match kind:
-		"secondary":
-			_style(b, SURFACE_2, SURFACE_3, BLUE.darkened(0.35))
-		"primary":
-			_style(b, accent, accent.lightened(0.12), accent.darkened(0.15))
-		"ghost":
-			_style(b, Color(1, 1, 1, 0.0), Color(1, 1, 1, 0.08), Color(1, 1, 1, 0.14))
-		"danger":
-			_style(b, RED.darkened(0.2), RED, RED.darkened(0.35))
-	return b
-
-
-## Large answer button with the icon above the label.
-static func choice(text: String, icon := "", accent := BLUE, icon_tex: Texture2D = null, size := Vector2(120, 104)) -> Button:
-	var b := button(text, "", "secondary", accent, 15)
 	b.custom_minimum_size = size
 	b.icon = icon_tex if icon_tex else (Icons.tex(icon, 40, Color.WHITE) if icon != "" else null)
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-	b.add_theme_font_override("font", font(500))
-	_style(b, Color(0.11, 0.11, 0.13, 0.72), Color(0.2, 0.2, 0.24, 0.8), accent.darkened(0.1), 18)
+	for key in ["font_color", "font_hover_color", "icon_normal_color", "icon_hover_color"]:
+		b.add_theme_color_override(key, LABEL)
+	for key in ["font_pressed_color", "font_hover_pressed_color", "icon_pressed_color", "icon_hover_pressed_color"]:
+		b.add_theme_color_override(key, accent.darkened(0.2))
+	b.add_theme_color_override("font_disabled_color", LABEL_3)
+	b.add_theme_color_override("icon_disabled_color", LABEL_3)
+	var looks := {"normal": CARD, "hover": Color.WHITE, "pressed": Color.WHITE.lerp(accent, 0.14),
+		"hover_pressed": Color.WHITE.lerp(accent, 0.14), "disabled": Color(1, 1, 1, 0.6)}
+	for st in looks:
+		var sb := box(looks[st], 18)
+		sb.content_margin_left = 16
+		sb.content_margin_right = 16
+		sb.content_margin_top = 12
+		sb.content_margin_bottom = 10
+		sb.shadow_color = Color(0, 0, 0, 0.1)
+		sb.shadow_size = 10
+		sb.shadow_offset = Vector2(0, 3)
+		b.add_theme_stylebox_override(st, sb)
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	add_press_feel(b)
 	return b
 
 
-static func _style(b: Button, normal: Color, hover: Color, pressed: Color, radius := 12) -> void:
-	for pair in [["normal", normal], ["hover", hover], ["pressed", pressed], ["hover_pressed", pressed]]:
-		var sb := box(pair[1], radius)
-		sb.content_margin_left = 16
-		sb.content_margin_right = 16
-		sb.content_margin_top = 10
-		sb.content_margin_bottom = 10
-		b.add_theme_stylebox_override(pair[0], sb)
-
-
-## Round tinted bubble holding an icon, used on menu cards and cards.
-static func icon_bubble(icon: String, accent: Color, d := 52.0) -> PanelContainer:
+## White capsule for readouts and small controls over a game.
+static func pill(content: Control, alpha := 0.94) -> PanelContainer:
 	var p := PanelContainer.new()
-	var sb := box(Color(accent, 0.18), int(d / 2.0), 0)
-	p.add_theme_stylebox_override("panel", sb)
-	p.custom_minimum_size = Vector2(d, d)
-	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var tr := TextureRect.new()
-	tr.texture = Icons.tex(icon, d * 0.5, accent)
-	tr.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.add_child(tr)
-	return p
-
-
-static func pill(content: Control, alpha := 0.72) -> PanelContainer:
-	var p := PanelContainer.new()
-	var sb := box(Color(SURFACE.r, SURFACE.g, SURFACE.b, alpha), 14, 10)
+	var sb := box(Color(1, 1, 1, alpha), 19, 8)
 	sb.content_margin_left = 14
 	sb.content_margin_right = 14
+	sb.shadow_color = Color(0, 0, 0, 0.08)
+	sb.shadow_size = 8
+	sb.shadow_offset = Vector2(0, 2)
 	p.add_theme_stylebox_override("panel", sb)
 	p.add_child(content)
 	return p
@@ -258,44 +243,10 @@ static func radial_texture(inner: Color, outer: Color, px := 128) -> Texture2D:
 	return _tex_cache[key]
 
 
-## Shaded sphere: light from the upper left, deep colour at the far edge.
-static func sphere_texture(col: Color, depth := 0.55) -> Texture2D:
-	var key := "s%s%.2f" % [col.to_html(), depth]
-	if not _tex_cache.has(key):
-		var g := Gradient.new()
-		g.set_color(0, col.lightened(0.55))
-		g.set_color(1, col.darkened(depth))
-		g.add_point(0.45, col)
-		var t := GradientTexture2D.new()
-		t.gradient = g
-		t.fill = GradientTexture2D.FILL_RADIAL
-		t.fill_from = Vector2(0.36, 0.3)
-		t.fill_to = Vector2(1.05, 0.95)
-		t.width = 256
-		t.height = 256
-		_tex_cache[key] = t
-	return _tex_cache[key]
-
-
-## Frosted glass card: translucent fill, hairline border, optional coloured glow.
-static func glass(alpha := 0.06, radius := 24, border_alpha := 0.1, glow_color := Color.TRANSPARENT, glow_size := 0) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(1, 1, 1, alpha)
-	sb.set_corner_radius_all(radius)
-	sb.border_color = Color(1, 1, 1, border_alpha)
-	sb.set_border_width_all(1)
-	sb.anti_aliasing = true
-	sb.set_content_margin_all(16)
-	if glow_size > 0:
-		sb.shadow_color = glow_color
-		sb.shadow_size = glow_size
-	return sb
-
-
 ## iOS-style capsule button.
 ## style: "filled" (accent fill, white text), "tinted" (accent-tinted fill),
 ## "gray" (neutral fill), "plain" (text only).
-static func apple_button(text: String, icon := "", style := "filled", color := SYS_BLUE, font_size := 15, height := 40.0) -> Button:
+static func apple_button(text: String, icon := "", style := "filled", color := ACCENT, font_size := 15, height := 40.0) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.focus_mode = Control.FOCUS_NONE

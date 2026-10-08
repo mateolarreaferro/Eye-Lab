@@ -1,9 +1,9 @@
 """Turn raw recordings into the WAV assets the SATIE scene compiles.
 
-    python3 vr_game/tools/prepare_audio.py <raw_dir>
+    python3 contrib/vision_quest_vr/tools/prepare_audio.py <raw_dir>
 
 <raw_dir> holds the files listed in audio/SOURCES.md (Satie library downloads
-and ElevenLabs generations). Output goes to vr_game/audio/assets/. Needs
+and ElevenLabs generations). Output goes to contrib/vision_quest_vr/audio/assets/. Needs
 ffmpeg on PATH plus numpy.
 
 SATIE's portable runtime plays PCM as-is: one shared sample rate, mono for

@@ -20,6 +20,7 @@ const isAllowedOrigin = (o: string | null) =>
 const MAX_BODY_BYTES = 300_000;
 const MAX_MESSAGES = 80;          // ~40 exchanges, including tool rounds
 const MAX_USER_TEXT = 2_000;      // characters per typed message
+const MAX_CONTEXT = 2_000;        // the app's "Right now" block
 
 export async function POST(request: Request): Promise<Response> {
   return withCors(request, await handle(request));
@@ -63,8 +64,9 @@ async function handle(request: Request): Promise<Response> {
     return json({ error: "conversation too long; start a new chat" }, 413);
   }
   let messages: Anthropic.Beta.BetaMessageParam[];
+  let context: unknown;
   try {
-    messages = JSON.parse(raw).messages;
+    ({ messages, context } = JSON.parse(raw));
   } catch {
     return json({ error: "invalid JSON" }, 400);
   }
@@ -72,6 +74,16 @@ async function handle(request: Request): Promise<Response> {
   if (problem) {
     return json({ error: problem }, 400);
   }
+  if (context !== undefined && (typeof context !== "string" || context.length > MAX_CONTEXT)) {
+    return json({ error: "bad context" }, 400);
+  }
+
+  // The app's "Right now" block (date, player, screen, filter, settings) rides
+  // after the cached prompt so the prompt cache still hits.
+  const system: Anthropic.Beta.BetaTextBlockParam[] = [
+    { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+  ];
+  if (typeof context === "string" && context.trim()) system.push({ type: "text", text: `## Right now\n${context.trim()}` });
 
   try {
     const response = await client.beta.messages.create({
@@ -80,7 +92,7 @@ async function handle(request: Request): Promise<Response> {
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
       output_config: { effort: "low" },
-      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+      system,
       tools: TOOLS,
       messages,
     });

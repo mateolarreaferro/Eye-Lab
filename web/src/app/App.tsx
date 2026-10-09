@@ -12,6 +12,7 @@ import { openGame, useNav } from "../lib/nav";
 import { gameByKey } from "./catalog";
 import { SettingsSheet } from "../settings/SettingsSheet";
 import { IrisPanel } from "../iris/IrisPanel";
+import { AskIris } from "../iris/AskIris";
 import { ProgressPage } from "../progress/ProgressPage";
 import { Welcome } from "./Welcome";
 import { usePlayers } from "../lib/lab";
@@ -21,7 +22,8 @@ import { usePlayers } from "../lib/lab";
   0. Welcome: the splash and "Who's playing?", until a player is picked.
   1. The stage: Home (top bar plus the Games or My progress tab, one screen tall),
      or the running game's canvas, inside the vision filter.
-  2. Chrome: a game's controls and its floating filter bar; never filtered.
+  2. Chrome: a game's controls and its floating filter bar, or on Home the Ask
+     Iris pill at the bottom right; never filtered.
   3. Panels: Settings and Iris, sliding in from the right.
   With Whole screen on, the helper filters everything, so the stage filter is off.
 */
@@ -66,6 +68,7 @@ export function App() {
       </div>
       {game && stage && <ExerciseShell key={run} game={game} stage={stage} />}
       {game && <FilterBar />}
+      {!game && current && <AskIris />}
       <AnimatePresence>
         {panel === "settings" && <SettingsSheet key="settings" />}
         {panel === "iris" && <IrisPanel key="iris" />}

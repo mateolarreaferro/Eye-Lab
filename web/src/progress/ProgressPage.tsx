@@ -3,7 +3,8 @@ import {
 } from "@phosphor-icons/react";
 import { IconPlate } from "../ui/IconPlate";
 import { Orb } from "../ui/Orb";
-import { bestFilterDay, dateAgo, filterMinutesOn, longestStreak, playsByGame, resultsFor, streak, useLab } from "../lib/lab";
+import { dateAgo, filterMinutesOn, streak, useLab } from "../lib/lab";
+import { badges as allBadges } from "../lib/report";
 import { HistoryChart } from "./HistoryChart";
 
 /** Home's My progress tab: the numbers, a week of filter time, test history,
@@ -16,21 +17,9 @@ export function ProgressPage() {
     return { date, min: filterMinutesOn(data, date) };
   });
   const top = Math.max(goal, ...week.map((d) => d.min));
-  const plays = playsByGame(data);
-  const testsDone = ["acuity", "contrast", "field_map"].filter((t) => resultsFor(data, t).length > 0).length;
-  const best = bestFilterDay(data);
-  const longest = longestStreak(data);
-
-  const badges: [string, string, boolean, Icon][] = [
-    ["First steps", "Play your first game", data.sessions.length >= 1, Play],
-    ["On a roll", "Play 3 days in a row", longest >= 3, Flame],
-    ["Week warrior", "Play 7 days in a row", longest >= 7, Sun],
-    ["Magic eyes", "30 minutes of filter time in a day", best >= 30, Eyeglasses],
-    ["Full dose", "Reach your daily filter goal", best >= goal, Clock],
-    ["Explorer", "Try 8 different games", Object.keys(plays).length >= 8, Binoculars],
-    ["Scientist", "Finish all 3 eye check-up tests", testsDone >= 3, Flask],
-    ["Trophy hunter", "Win 50 trophies", data.stars >= 50, Trophy],
-  ];
+  // Badge rules live in lib/report.ts (Iris reads the same list); the icons are ours.
+  const BADGE_ICONS: Icon[] = [Play, Flame, Sun, Eyeglasses, Clock, Binoculars, Flask, Trophy];
+  const badges: [string, string, boolean, Icon][] = allBadges(data).map((b, i) => [b.name, b.how, b.earned, BADGE_ICONS[i]]);
 
   const stats: [string, string | number, Icon, string, string][] = [
     ["Trophies", data.stars, Trophy, "var(--color-orb-2)", "var(--color-orb-5)"],

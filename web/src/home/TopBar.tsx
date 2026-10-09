@@ -8,9 +8,10 @@ import { Avatar } from "../app/Welcome";
 
 /*
   The bar across the top of Home: the logo, the two tabs (Games, My progress),
-  then Iris as the one navy pill, the gear for Settings (where the filter and
-  eye tracking are switched; a dot on the gear says one of them is on), and
-  the player, whose chip goes back to "Who's playing?". It sits inside the filtered stage (the user wants
+  the gear for Settings (where the filter and eye tracking are switched; a dot
+  on the gear says one of them is on), and the player, whose chip goes back to
+  "Who's playing?". Iris is not here: her button floats at the bottom right
+  (iris/AskIris.tsx). The bar sits inside the filtered stage (the user wants
   the filter on everything). On small screens the tabs get their own row.
 */
 export function TopBar() {
@@ -29,13 +30,6 @@ export function TopBar() {
           <Tabs />
         </span>
         <nav className="ml-auto flex shrink-0 items-center gap-2" aria-label="Main">
-          <button
-            {...sfxProps}
-            onClick={() => openPanel("iris")}
-            className="h-10 rounded-full bg-primary px-5 text-[15px] font-semibold whitespace-nowrap text-card transition-colors duration-200 hover:bg-primary-hover"
-          >
-            Ask Iris
-          </button>
           <button
             {...sfxProps}
             onClick={() => openPanel("settings", "general")}

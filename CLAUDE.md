@@ -92,7 +92,15 @@ synthesised sine ticks; **never noise** (the user hated it).
 ## Iris (`iris-server/`)
 
 - Prompt, tool schemas and model live **only on the server** (`lib/iris.ts`); clients send
-  `{messages}` and run the tools themselves (`web/src/lib/iris.ts`).
+  `{messages, context}` and run the tools themselves (`web/src/lib/iris.ts`). `context` is the web
+  app's "Right now" block (date, player, screen, filter, settings), appended as a second system
+  block after the cached prompt. Tools: open_game, open_page (home, progress, the Settings tabs,
+  calibrate), set_filter, set_filter_params, set_whole_screen, set_setting (distance, eye, goal,
+  eye tracking, sound), get_progress (full history and per-game trends from `web/src/lib/report.ts`),
+  show_chart (draws a chart bubble in the chat, `iris/ChatChart.tsx`) and export_data (CSV).
+  Old Godot desktop builds share the endpoint and answer the new tools with "Unknown tool".
+- The Ask Iris button floats at the bottom right of Home (`iris/AskIris.tsx`, outside the filter,
+  moved there 2026-10-09); it is not in the top bar.
 - The web app sends the visitor's own key as `x-anthropic-key`; the server uses it for that call only.
   The shared `x-eyelab-key` path (Vercel env `EYELAB_APP_KEY`, server key `ANTHROPIC_API_KEY`) is for old
   desktop builds. CORS in `api/iris.ts` allows the site and localhost.

@@ -6,12 +6,13 @@ import { ask, iris, keySource, resetChat } from "../lib/iris";
 import { openPanel } from "../lib/nav";
 import { useLab } from "../lib/lab";
 import { sfxProps } from "../lib/sfx";
+import { ChatChart } from "./ChatChart";
 
 const SUGGESTIONS = [
-  "What does the High-pass filter do?",
-  "Start the Letter E test",
   "How am I doing?",
-  "What's the science behind Dot hunt?",
+  "Give me a challenge for today",
+  "Why would High-pass help my eyes?",
+  "Start the Letter E test",
 ];
 
 /** Chat with Iris, in the lilac of her home-screen bar. */
@@ -40,7 +41,7 @@ export function IrisPanel() {
       <div className="flex min-h-full flex-col">
         <div role="log" aria-live="polite" className="flex flex-1 flex-col gap-3 pb-4">
           <Bubble mine={false}>
-            {`Hi${name ? `, ${name}` : ""}! I'm Iris. Ask me about any game, the filters, or the science behind Eye Lab. I can also start games and switch filters for you.`}
+            {`Hi${name ? `, ${name}` : ""}! I'm Iris. Ask me how you're doing, what a game measures, or why the filters work the way they do. I can show your progress as a chart, start games, switch filters and change settings for you.`}
           </Bubble>
           {keySource() === "none" && (
             <div className="flex items-start gap-3 rounded-card border border-hairline bg-card p-4 text-[16px] leading-relaxed">
@@ -54,11 +55,15 @@ export function IrisPanel() {
               </span>
             </div>
           )}
-          {bubbles.map((b, i) => (
-            <Bubble key={i} mine={b.mine}>
-              {b.text}
-            </Bubble>
-          ))}
+          {bubbles.map((b, i) =>
+            b.kind === "chart" ? (
+              <ChatChart key={i} chart={b.chart} />
+            ) : (
+              <Bubble key={i} mine={b.mine}>
+                {b.text}
+              </Bubble>
+            ),
+          )}
           {busy && (
             <div role="status" className="flex gap-1.5 self-start rounded-card bg-canvas px-5 py-4" aria-label="Iris is thinking">
               {[0, 1, 2].map((i) => (

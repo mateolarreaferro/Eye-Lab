@@ -53,7 +53,7 @@ export interface Session {
   eye?: EyeSummary;
 }
 
-interface LabData {
+export interface LabData {
   settings: Settings;
   results: Result[];
   sessions: Session[];

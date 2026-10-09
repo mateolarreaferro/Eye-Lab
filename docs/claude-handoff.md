@@ -4,7 +4,7 @@ Newest entry first. Read with `git log` at session start.
 
 # Iris: bottom-right button, context block, data tools and charts (2026-10-09)
 
-## Where we are - `main` at `c6ab369` plus uncommitted changes, no test suite, web and server typecheck and build pass
+## Where we are - `main` at `e791c4b`, pushed; server deployed to Vercel and web synced into MLF-Web (`6099acc`) on 2026-10-09; no test suite, web and server typecheck and build pass
 - Ask Iris left the top bar; it is a navy pill fixed at the bottom right of Home
   (`web/src/iris/AskIris.tsx`, rendered from `App.tsx` outside the filtered stage, Home only).
 - Iris server (`iris-server/lib/iris.ts`): prompt rewritten in sections (scope and safety, how to
@@ -27,12 +27,10 @@ Newest entry first. Read with `git log` at session start.
   call with the new prompt and tools (no key used in this session).
 
 ## What is next
-1. Commit the working tree, then deploy the server: `cd iris-server && vercel deploy --prod`.
-   Until the server is deployed, the live site only has the old five tools and ignores `context`.
-2. Try real conversations with a key: "How am I doing?", "Give me a challenge", "Test my left
-   eye with Letter E", "Why would High-pass help?", a researcher asking for the CSV. Tune the
-   prompt's wobble bands and challenge rules in `iris-server/lib/iris.ts` from what you see.
-3. Deploy the web app through MLF-Web (`npm run sync:demos -- eyelab`).
+1. Try real conversations with a key on the live site: "How am I doing?", "Give me a challenge",
+   "Test my left eye with Letter E", "Why would High-pass help?", a researcher asking for the CSV.
+   Tune the prompt's wobble bands and challenge rules in `iris-server/lib/iris.ts` from what you
+   see, then `cd iris-server && vercel deploy --prod` (prompt-only changes need no web deploy).
 
 ## Open items / questions
 - Effort stays `low` on the server call (CLAUDE.md decision). If the science answers feel thin,

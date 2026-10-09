@@ -1,0 +1,177 @@
+@import "@fontsource-variable/figtree";
+@import "tailwindcss";
+
+/*
+  Eye Lab's look: Project Prakash's colours and type (projectprakash.org) on
+  a clean, quiet structure. White and pale sky-blue bands, deep navy ink, sky
+  blue for highlighted words and labels, navy pill buttons, white cards with
+  1px hairlines, and soft blue blooms as the only atmosphere. One typeface
+  everywhere: Figtree (body 400/500, headings 700). One light theme.
+*/
+@theme {
+  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+
+  /* Project Prakash's palette. */
+  --color-ink: #161c32;
+  --color-primary: #161c32;
+  --color-primary-hover: #26304f;
+  --color-accent: #55c1f2;
+  --color-accent-deep: #0078a8;
+  --color-body: #3f4659;
+  --color-muted: #6a7184;
+  --color-muted-soft: #a3a9b8;
+  --color-hairline: #e3e8ef;
+  --color-hairline-soft: #eef2f6;
+  --color-hairline-strong: #cfd7e1;
+  --color-canvas: #ffffff;
+  --color-canvas-soft: #f7fbfd;
+  --color-band: #e4f5fc;
+  --color-card: #ffffff;
+  --color-strong: #eef3f7;
+
+  /* Soft blue bloom stops: decoration only, never fills or text. */
+  --color-orb-1: #8fd6f6;
+  --color-orb-2: #c6ecfb;
+  --color-orb-3: #64d5ff;
+  --color-orb-4: #b4e2f7;
+  --color-orb-5: #dbf1fb;
+
+  --radius-card: 16px;
+  --radius-orb: 24px;
+  --radius-input: 8px;
+
+  --shadow-soft: 0 4px 16px rgb(0 0 0 / 0.04);
+  --ease-calm: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+:root {
+  color: var(--color-ink);
+  background: var(--color-canvas);
+  font-family: var(--font-sans);
+  letter-spacing: 0.012em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body,
+#root {
+  min-height: 100dvh;
+}
+
+body {
+  margin: 0;
+}
+
+/* Display: the same Figtree, bold and slightly tightened. */
+.display {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+/* Small uppercase section label. */
+.label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent-deep);
+}
+
+/* A soft pastel bloom. Set --orb (and optionally --orb-2) on the element. */
+.orb {
+  background:
+    radial-gradient(60% 60% at 35% 40%, var(--orb) 0%, transparent 70%),
+    radial-gradient(50% 55% at 70% 65%, var(--orb-2, var(--orb)) 0%, transparent 72%);
+  filter: blur(18px);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .orb-drift {
+    animation: orb-drift 22s var(--ease-calm) infinite alternate;
+  }
+}
+@keyframes orb-drift {
+  from {
+    transform: translate3d(-3%, -2%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(3%, 2%, 0) scale(1.06);
+  }
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 3px;
+}
+/* Text fields draw their own focus border. */
+input:not([type="range"]):focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
+button,
+a {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Range inputs: a thin hairline track, ink fill, white knob with a hairline. */
+input[type="range"].slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 28px;
+  background: transparent;
+  width: 100%;
+}
+input[type="range"].slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--track-fill, var(--color-ink)) var(--fill, 50%),
+    var(--track-bg, var(--color-hairline-strong)) var(--fill, 50%)
+  );
+}
+input[type="range"].slider::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--track-bg, var(--color-hairline-strong));
+}
+input[type="range"].slider::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--track-fill, var(--color-ink));
+}
+input[type="range"].slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -10px;
+  border-radius: 999px;
+  background: var(--color-card);
+  border: 1px solid var(--color-hairline-strong);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+}
+input[type="range"].slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--color-card);
+  border: 1px solid var(--color-hairline-strong);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

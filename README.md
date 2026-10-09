@@ -1,49 +1,49 @@
 # Eye Lab
 
-A macOS app of vision games and tests, with the spatial-frequency filters from
-*Perceive More By Seeing Less* and exercises from the Sinha lab's VR vision work
-(Project Prakash). It includes a whole-screen filter for any app or video, and
-**Iris**, a guide powered by Claude.
+Vision games, tests and spatial-frequency filters, with exercises from the Sinha lab's VR vision
+work (Project Prakash) and the filters from *Perceive More By Seeing Less*. It runs in the browser,
+can filter your whole Mac screen with a small helper app, and has **Iris**, a guide powered by Claude.
 
-**[Download the latest release](../../releases/latest)** (macOS 14+, Apple Silicon and Intel).
+**[Open Eye Lab](https://mateolarreaferro.com/eyelab)**
 
 ## What's inside
 
 - **Eye check-up:** Letter E (tumbling-E acuity, logMAR), Faint stripes (contrast sensitivity at 4 spatial frequencies), Dot hunt (visual field map).
 - **Spot the odd one:** color, letter direction, stripe tilt and red/cyan stereo depth, anywhere along the visual field.
-- **Brain games:** counting lights, "Did it move?", multiple object tracking, directed search, Pong with a hidden middle.
-- **Magic glasses:** webcam, scene or picture through the filters, plus **Whole screen** mode that filters the entire Mac.
-- **Filters:** high-pass ("frequency patching"), low-pass, edges, invert, kaleidoscope, with a coarse-to-fine cutoff. **Settings › Filters** has sliders for how high-pass and low-pass behave (cutoff, contrast boost, how much of the coarse image is kept, low-pass strength); they apply in the app and on the whole screen.
-- **My profile:** trophies, day streak, filter time, test history and badges.
-- **Iris:** answers questions about the app and the research, opens games and sets filters. Declines anything off-topic. Add your own Claude API key in **Settings › Iris**.
+- **Brain games:** counting lights, "Did it move?", multiple object tracking, visual search, Pong with a hidden middle.
+- **Magic glasses:** your webcam, a scene or a picture through the filters, plus **Whole screen**, which filters the entire Mac.
+- **Filters:** high-pass ("frequency patching") and low-pass, with a coarse-to-fine cutoff. **Settings, Filters** has sliders for contrast boost, how much of the coarse image high-pass keeps, and low-pass strength.
+- **Progress:** trophies, day streak, filter time, test history and badges. Everything stays in your browser.
+- **Iris:** answers questions about the games and the research, opens games and sets filters. Add your own Claude API key in **Settings, Iris** ([get one here](https://console.anthropic.com/settings/keys)).
 
 Eye Lab is a research and training toy, not a medical device. It doesn't diagnose or treat anything.
+For accurate test sizes, run **Calibrate with a card** in Settings and set your viewing distance.
 
-## Installing
+## Whole screen (macOS)
 
-1. Download `Eye Lab.zip` from the release and unzip it.
-2. The app isn't notarized yet, so the first time, open **System Settings › Privacy & Security** and click **Open Anyway**.
-3. For **Whole screen**, allow **Eye Lab Overlay** under **Screen & System Audio Recording** when asked, then turn Whole screen on again.
-4. For Netflix and other protected video with the filter on, use Chrome or Firefox (Safari shows protected video as black).
-5. To chat with Iris, open **Settings › Iris** and paste a Claude API key (create one at [console.anthropic.com](https://console.anthropic.com/settings/keys)). The key stays on your Mac and is sent only with chat requests.
+1. Download `Eye Lab Overlay.zip` from the [latest release](../../releases/latest), unzip it and move **Eye Lab Overlay** to Applications.
+2. Open it once. It isn't notarized yet, so if macOS blocks it, click **Open Anyway** in System Settings, Privacy & Security.
+3. Allow **Eye Lab Overlay** under **Screen & System Audio Recording**.
+4. In Eye Lab, open **Magic glasses** and switch **Whole screen** on. Your browser asks once whether to open the helper and whether the page may talk to it.
+
+For Netflix and other protected video, use Chrome or Firefox (Safari shows protected video as black).
 
 ## Repository layout
 
 | Folder | What it is |
 |---|---|
-| `eye_lab/` | The Godot 4.7 project (games, filters, UI, Iris client). |
-| `overlay/` | `Eye Lab Overlay.app`: Swift helper that filters the whole screen (ScreenCaptureKit + Metal). |
-| `iris-server/` | Vercel function that holds the Claude API key and Iris's prompt and tools. |
-| `contrib/vision_quest_vr/` | Samiksha Singh's separate Godot XR project: a dichoptic VR game built on the frequency-patching filter. Not part of the Eye Lab build. See its README. |
-| `build_all.sh` | Builds the helper, exports Eye Lab, bundles the helper and signs the app. |
+| `web/` | The app: React, Vite, Tailwind and Motion. |
+| `overlay/` | `Eye Lab Overlay.app`, the Swift helper that filters the whole screen (ScreenCaptureKit and Metal). |
+| `iris-server/` | Vercel function that holds Iris's prompt and tools. |
+| `eye_lab/` | The original Godot desktop app, kept for reference. See `docs/godot-desktop.md`. |
+| `contrib/vision_quest_vr/` | Samiksha Singh's separate VR project: a dichoptic game built on the frequency-patching filter. See its README. |
 
-## Building
-
-Requirements: Godot 4.7.2 with macOS export templates, Xcode command line tools.
+## Developing
 
 ```sh
-cp eye_lab/autoload/iris_secrets.example.gd eye_lab/autoload/iris_secrets.gd   # set APP_KEY
-GODOT=/path/to/Godot.app/Contents/MacOS/Godot ./build_all.sh
+cd web && npm install && npm run dev     # the app at http://localhost:5173
+./overlay/build.sh                        # the helper, into build/
 ```
 
-The app is written to `build/Eye Lab.app`. To deploy the Iris server, see [`iris-server/README.md`](iris-server/README.md).
+The site copy is built by mateolarreaferro.com's `npm run sync:demos -- eyelab`. To deploy the Iris
+server, see [`iris-server/README.md`](iris-server/README.md).

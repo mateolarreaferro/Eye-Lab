@@ -1,100 +1,87 @@
 # Eye Lab: notes for development
 
-macOS vision-training app. Godot 4.7 project (`eye_lab/`), a Swift whole-screen filter helper
-(`overlay/`), and a Vercel function that proxies Claude for the Iris chat (`iris-server/`).
-`contrib/vision_quest_vr/` is Samiksha Singh's separate VR project; it is not built or shipped with Eye Lab.
-Repo: github.com/mateolarreaferro/Eye-Lab. Releases carry `Eye Lab.zip` built by `build_all.sh`.
+Vision games, tests and spatial-frequency filters for the Sinha lab. Repo: github.com/mateolarreaferro/Eye-Lab.
 
-## Build, run, test
+| Folder | What it is |
+|---|---|
+| `web/` | **The app.** React + Vite + Tailwind v4 + Motion, served at mateolarreaferro.com/eyelab. |
+| `overlay/` | Eye Lab Overlay.app: Swift helper that filters the whole Mac screen (ScreenCaptureKit + Metal). |
+| `iris-server/` | Vercel function holding Iris's prompt and tools; calls Claude. |
+| `eye_lab/` | The original Godot desktop app, superseded by `web/`. Before touching it or `build_all.sh`, read `docs/godot-desktop.md`. |
+| `contrib/vision_quest_vr/` | Samiksha Singh's separate VR project; never built or shipped with Eye Lab. |
 
-- Godot binary: `~/Desktop/Godot.app/Contents/MacOS/Godot` (4.7.2; macOS export templates installed).
-- Full build: `./build_all.sh` → `build/Eye Lab.app`. Then zip with
-  `cd build && ditto -c -k --keepParent "Eye Lab.app" "Eye Lab.zip"` (not Finder's compress).
-- After adding a file with a new `class_name`, run `Godot --headless --path eye_lab --import` **twice**;
-  the first pass can report "Could not find type" before the class cache updates.
-- `--check-only --script` reports false errors for autoload names (Lab, Filter, Iris, Sfx); use the
-  import pass or a real run instead.
-- Screenshot hook in `main.gd` (`_handle_cli`), run windowed (not headless):
-  `Godot --path eye_lab --quit-after 900 -- --shot=<exercise key|menu> --out=/path.png [--wait=1.3] [--filter=N] [--intro] [--chat] [--profile] [--grownups[=tab 0-3]] [--splash]`
-- `-- --iris-test="q1|q2"` (headless OK) asks Iris each question through the real server and prints
-  replies and tool actions. This spends real API money; keep it to a few questions.
-- `-- --export-sfx=<dir>` writes each UI sound to a WAV for listening.
+## Web app (`web/`)
 
-## Whole-screen helper: macOS permission trap (read before touching `overlay/`)
+- Layers in `app/App.tsx`: the **stage** (Home, or a game's canvas) sits inside the vision filter; the
+  **chrome** (filter bar, a game's Home/trophies/answers/cards) and the side panels sit outside it so
+  they stay readable. A game draws its canvas into the stage through a portal (`exercise/ExerciseShell.tsx`).
+- Games extend `exercise/Exercise.ts`, a deliberate mirror of the Godot base class (setup/begin/draw/
+  tick/onAnswer/onPointer/onKey/summary; setAnswers/feedback/after/end), so each `exercises/*.ts` stays
+  comparable line by line with its `eye_lab/exercises/*.gd` original. Keys in `app/catalog.ts` must match
+  Iris's game list in `iris-server/lib/iris.ts`.
+- Units: CSS pixels. `pxPerDeg()` assumes 96 px/in until card calibration runs (browsers can't read
+  the physical screen size). Blur scale `lod` keeps the desktop meaning (2^lod physical px): convert
+  with `devicePixelRatio`, as `sigmaFor` and `lodToCpd` in `lib/filter.ts` do.
+- The in-page filter is an SVG filter chain (`filter/FilterDefs.tsx`). SVG clamps every intermediate to
+  0..1 and keeps colour at or below alpha, which is why high-pass is built in three steps; read that
+  file's comment before changing the math. Only Off, High-pass and Low-pass exist (edges, invert and
+  kaleidoscope were removed on purpose).
+- Player data is localStorage (`eyelab:v1`, `eyelab:filter`, `eyelab:iris-key`); the Iris key stays out
+  of the progress data so `get_progress` never sees it.
+- `?game=<key>` opens a game directly.
+- Check visually with Playwright, not the Chrome extension: the extension's tab reports
+  `visibilityState: hidden`, which pauses animation frames and freezes Motion mid-slide. Use
+  `playwright-core` from `~/Desktop/repos/MLF-Web/node_modules` with the headless shell in
+  `~/Library/Caches/ms-playwright/chromium_headless_shell-1217/`.
+- Deploy: MLF-Web's `npm run sync:demos -- eyelab` builds `hosted/Eye-Lab/web` with `--base=/eyelab/`
+  into its `public/eyelab/` (committed there); `next.config.ts` rewrites `/eyelab`. Never edit that copy.
 
-- Screen-recording permission is tied to the exact signed build (ad-hoc cdhash). Any rebuild of the
-  helper revokes it silently, even though System Settings still shows it enabled.
-- The helper must never run from inside `Eye Lab.app`: macOS then attributes it to Eye Lab and every
-  Eye Lab rebuild revokes the permission. Eye Lab ships it in `Contents/Resources/`, copies it to
-  `~/Applications/Eye Lab Overlay.app` when the binary differs (md5), strips quarantine, and launches
-  **that** copy via `open -a` (Launch Services, so the helper, not Eye Lab, is the permission subject).
-- `overlay/build.sh` skips rebuilding when `main.swift`/`Info.plist` are unchanged; `--force` overrides.
-  Only change the helper when necessary, and tell the user they'll need to re-allow it.
-- Debugging: `log show --last 10m --predicate 'subsystem == "com.apple.TCC" AND eventMessage CONTAINS "eyelab"'`
-  shows which bundle is the permission subject and whether the code requirement matched.
-  `open -W --stdout f -a ~/Applications/Eye\ Lab\ Overlay.app --args --selftest` prints whether the
-  GPU pipeline compiles and whether permission is granted, without capturing.
-- Eye Lab ↔ helper talk through `user://overlay.json` (`{"mode", "lod", "gain", "keep", "mix"}`; mode 0 = quit;
-  the last three are optional for older helpers), and the helper
-  logs filter seconds to `user://overlay_time.json`, which `Lab.filter_minutes_on()` adds in.
-  `Filter._sync_from_overlay` resets the toggle if the helper process isn't running.
+## Look (web)
+
+Project Prakash's look (projectprakash.org, chosen 2026-10-08) on the clean ElevenLabs-style structure
+the user approved before it: white and pale sky-blue bands (`--color-band`), deep navy ink `#161c32`, sky
+blue `#55c1f2` for highlighted words and labels, navy pill buttons, white cards with 1px hairlines and one
+soft shadow tier, and soft blue blooms (`ui/Orb.tsx`) as the only atmosphere. The Project Prakash logo
+(`src/assets/project-prakash-logo.svg`, a cleaned copy of their header SVG; the user asked to use it)
+leads the top bar and footer. **One typeface everywhere: Figtree** (the face their headings use): body
+400/500, titles 600-700, `.label` for small uppercase sky-blue labels. That includes canvas text in the
+games (`"Figtree Variable"`). Icons are Phosphor `light` on round plates (`ui/IconPlate.tsx`). Tokens
+live in `src/index.css`; use them, not raw hex. Rejected along the way: a split hero with accordion
+bars, flat saturated blocks, soft tinted cards. **Navigation comes first**: every game is one click from
+Home, every control is labelled, and each call to action appears once. Sounds (`lib/sfx.ts`) are short
+synthesised sine ticks; **never noise** (the user hated it).
+
+## Whole-screen helper (`overlay/`)
+
+- The page reaches the helper two ways (`web/src/lib/helper.ts`): the `eyelab-overlay://on?mode=..`
+  link launches it, then a local server on `127.0.0.1:47823` answers `GET /status` and `POST /state`
+  (`{mode, lod, gain, keep, mix}`, mode 0 quits). The server is bound to loopback, rejects other Host
+  headers (DNS rebinding) and grants CORS only to mateolarreaferro.com and http://localhost origins.
+- Newer Chrome asks visitors for local-network access on the first 127.0.0.1 request, so the page
+  contacts the helper only after someone turns Whole screen on (remembered in localStorage).
+- Launched without `--state` (from the web or by hand) it keeps state in
+  `~/Library/Application Support/Eye Lab Overlay/`; the desktop app passes `--state`.
+- **Permission trap**: Screen Recording permission is tied to the exact ad-hoc signed build, and any
+  rebuild silently revokes it. Change the helper only when necessary and tell the user to re-allow it.
+  `overlay/build.sh` skips unchanged sources (`--force` overrides).
+- Test without a permission prompt: `"build/Eye Lab Overlay.app/Contents/MacOS/EyeLabOverlay" --no-capture`,
+  then curl the server. `--selftest` checks the GPU pipeline and permission.
 - Protected video (Safari, Netflix app) captures as black; Chrome/Firefox work.
+- Releases carry `Eye Lab Overlay.zip` (`ditto -c -k --keepParent`); the page links to
+  `releases/latest/download/Eye.Lab.Overlay.zip` (GitHub turns the spaces into dots).
 
-## Iris (Claude)
+## Iris (`iris-server/`)
 
-- The system prompt, tool schemas and model live **only on the server** (`iris-server/lib/iris.ts`);
-  the app sends `{messages}` and runs tools locally (`eye_lab/autoload/iris.gd::_run_tool`). Tool names,
-  game keys and filter modes must match across `lib/iris.ts`, `iris.gd` (GAMES / FILTER_MODES) and
-  `main.gd` (EXERCISES).
-- Model `claude-opus-5`, effort `low`, `fallbacks: "default"` with beta `server-side-fallback-2026-07-01`,
-  `@anthropic-ai/sdk` pinned in `iris-server/package.json`. Deploy: `cd iris-server && vercel deploy --prod`
-  (project `eye-lab-iris`, URL https://eye-lab-iris.vercel.app/api/iris).
-- Vercel env: `ANTHROPIC_API_KEY`, `EYELAB_APP_KEY`. The app reads the same access code from
-  `eye_lab/autoload/iris_secrets.gd` (git-ignored; copy the `.example.gd`). Never commit it.
-- Players can set their own Claude API key in Settings › Iris (`user://iris.cfg`, kept out of
-  `eye_lab.json` so `get_progress` never sees it). The app then sends `x-anthropic-key` instead of
-  `x-eyelab-key`, and the server uses that key for the one call without storing or logging it.
-- Iris must stay on-topic (app, games, filters, research, the player's progress), never diagnose or
-  promise results, and use plain text with no emoji. Keep new prompt text consistent with that.
+- Prompt, tool schemas and model live **only on the server** (`lib/iris.ts`); clients send
+  `{messages}` and run the tools themselves (`web/src/lib/iris.ts`).
+- The web app sends the visitor's own key as `x-anthropic-key`; the server uses it for that call only.
+  The shared `x-eyelab-key` path (Vercel env `EYELAB_APP_KEY`, server key `ANTHROPIC_API_KEY`) is for old
+  desktop builds. CORS in `api/iris.ts` allows the site and localhost.
+- Model `claude-opus-5`, effort `low`, `fallbacks: "default"` with beta `server-side-fallback-2026-07-01`.
+  Deploy: `cd iris-server && vercel deploy --prod` (project `eye-lab-iris`).
+- Iris stays on-topic (app, games, filters, research, the player's progress), never diagnoses or
+  promises results, and writes plain text with no emoji.
 
-## Design and sound: what the user has asked for
+## Before pushing
 
-- Visual language: Headspace sunset palette (orange → pink gradient, `core/mesh_background.gd`), white
-  cards, flat icon tiles in four section hues that run sunset to dusk (`UI.CORAL`, `ROSE`, `PLUM`,
-  `INDIGO`), one orange accent (`UI.ACCENT`) for every primary action, white pills over games (no dark
-  chrome), **SF Pro** (`/System/Library/Fonts/SFNS.ttf`, weights 400/600; not the rounded font). Calm and careful, not cartoonish, not dark or glowy. Ask Iris is a
-  floating button bottom-right; the chat opens above it. It should suit ages ~4–26.
-- Rejected directions: toddler-style cartoon UI (big chunky tiles, clouds and hills), dark Inside Out
-  space theme, cool-grey Apple glass. Don't drift back to these.
-- Sounds (`autoload/sfx.gd`) are synthesised sine ticks in the same family as the hover tick, which the
-  user liked. **Never use noise** (the user hated it) and avoid low, pitch-gliding "boops" for clicks.
-  Keep everything very short and quiet.
-- Every game opens on a "How to play" card with numbered `steps` (set in each exercise's `_setup`).
-
-## Code conventions and gotchas
-
-- UI is built in code, not scenes. Shared styling lives in `core/ui.gd` (palette, `apple_button`,
-  `icon_tile`, `glass_panel`, `add_press_feel`) and `core/icons.gd` (inline SVG icons rendered at the
-  HiDPI scale). The window uses `content_scale_factor = screen scale`, so all sizes are logical points;
-  visual-angle maths (`Lab.px_per_deg()`) uses the same units, and card calibration measures them too.
-- `GlassPanel` (`core/glass_panel.gd` + `shaders/glass.gdshader`) samples the screen texture: don't add
-  stylebox shadows under it (they get blurred into the glass and look muddy). Its background is an
-  internal child that must be re-sized after every container sort (`sort_children`).
-- Controls inside a `CanvasLayer` don't inherit the window theme; set `theme = UI.theme()` on the root.
-- GDScript: write lambdas multi-line (no `func(): if x: y()` one-liners); `:=` can't infer from
-  Variant/Dictionary values, so type them explicitly.
-- `Filter` swallows Tab / [ / ] / H shortcuts except while a LineEdit/TextEdit has focus (chat typing).
-- Filter behaviour lives in `Filter.params` (`hp_lod`, `hp_gain`, `hp_keep`, `lp_lod`, `lp_mix`), saved in
-  `Lab.settings["filter"]`; high-pass and low-pass each keep their own cutoff, and edges uses the
-  high-pass values. Change them with `Filter.set_param` so the shader, helper and Settings stay in sync.
-- Exercises extend `core/exercise.gd`: override `_setup/_begin/_draw_scene/_on_answer/_tick/_summary`,
-  use `set_answers()` for clickable answers, `after()` for timers, `feedback(ok)` for sound and flash.
-  Answers must be clickable; keyboard shortcuts are optional extras.
-- Player data: `user://eye_lab.json` (~/Library/Application Support/Godot/app_userdata/Eye Lab/).
-
-## Release checklist
-
-1. `./build_all.sh`, then re-zip (see above), then smoke-test with the screenshot hook.
-2. Confirm the helper is unchanged (`cmp` the bundled binary with `~/Applications/...`) or warn about re-permission.
-3. Scan before pushing: `git grep --cached -nE "sk-ant-|<app key>"` must find nothing; PDFs stay ignored.
-4. `gh release create vX.Y.Z "build/Eye Lab.zip" ...` with install notes (Open Anyway, Screen Recording, Chrome for Netflix).
+`git grep --cached -nE "sk-ant-[A-Za-z0-9_-]{20,}"` and the app key must find nothing; PDFs stay ignored.

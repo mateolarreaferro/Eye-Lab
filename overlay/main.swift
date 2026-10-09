@@ -15,21 +15,22 @@ import CoreMedia
 import CoreVideo
 import Metal
 import MetalPerformanceShaders
+import Network
 import QuartzCore
 import ScreenCaptureKit
 
 // MARK: - Settings shared between the UI thread and the capture queues
 
 struct FilterSettings: Codable, Equatable {
-    var mode: Int = 1        // 0 off, 1 high-pass, 2 low-pass, 3 edges, 4 invert, 5 kaleidoscope
+    var mode: Int = 1        // 0 off, 1 high-pass, 2 low-pass
     var lod: Double = 3.0    // blur scale = 2^lod physical pixels (same meaning as in Eye Lab)
     // Optional so older state files (mode and lod only) still decode.
-    var gain: Double? = nil  // high-pass and edges contrast gain (default 1.6)
+    var gain: Double? = nil  // high-pass contrast gain (default 1.6)
     var keep: Double? = nil  // high-pass: share of the coarse (low-pass) image kept, 0...1
     var mix: Double? = nil   // low-pass: blend from original (0) to fully blurred (1)
 }
 
-let modeNames = ["Off", "High-pass", "Low-pass", "Edges", "Invert", "Kaleidoscope"]
+let modeNames = ["Off", "High-pass", "Low-pass"]
 
 final class SettingsBox {
     private let lock = NSLock()
@@ -56,7 +57,7 @@ vertex VOut vmain(uint vid [[vertex_id]]) {
     return o;
 }
 
-struct Params { int mode; float gain; float time; float segments; float aspect; float keep; float mix; };
+struct Params { int mode; float gain; float keep; float mix; };
 
 fragment float4 fmain(VOut in [[stage_in]],
                       texture2d<float> src [[texture(0)]],
@@ -70,18 +71,6 @@ fragment float4 fmain(VOut in [[stage_in]],
         o = 0.5 + (c - b) * P.gain + (b - 0.5) * P.keep;
     } else if (P.mode == 2) {
         o = mix(c, blur.sample(s, in.uv).rgb, P.mix);
-    } else if (P.mode == 3) {
-        o = clamp(abs(c - blur.sample(s, in.uv).rgb) * P.gain * 3.0, 0.0, 1.0);
-    } else if (P.mode == 4) {
-        o = 1.0 - c;
-    } else if (P.mode == 5) {
-        float2 aspect = float2(P.aspect, 1.0);
-        float2 p = (in.uv - 0.5) * aspect;
-        float seg = 2.0 * M_PI_F / P.segments;
-        float a = fmod(atan2(p.y, p.x) + P.time * 0.1 + 100.0 * seg, seg);
-        a = abs(a - seg * 0.5);
-        float2 q = length(p) * float2(cos(a), sin(a));
-        o = src.sample(s, clamp(q / aspect + 0.5, 0.0, 1.0)).rgb;
     }
     return float4(o, 1.0);
 }
@@ -90,9 +79,6 @@ fragment float4 fmain(VOut in [[stage_in]],
 struct Params {
     var mode: Int32
     var gain: Float
-    var time: Float
-    var segments: Float
-    var aspect: Float
     var keep: Float
     var mix: Float
 }
@@ -241,8 +227,6 @@ final class DisplayOverlay: NSObject, SCStreamOutput, SCStreamDelegate {
         pass.colorAttachments[0].storeAction = .store
         guard let enc = cmd.makeRenderCommandEncoder(descriptor: pass) else { return }
         var params = Params(mode: Int32(st.mode), gain: Float(st.gain ?? 1.6),
-                            time: Float(CACurrentMediaTime() - start), segments: 8,
-                            aspect: Float(w) / Float(h),
                             keep: Float(st.keep ?? 0.0), mix: Float(st.mix ?? 1.0))
         enc.setRenderPipelineState(gpu.pipeline)
         enc.setFragmentTexture(src, index: 0)
@@ -281,6 +265,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var pollTimer: Timer?
     var lastStateData: Data?
     var secondsUnsaved = 0.0
+    var server: LocalServer?
 
     func applicationDidFinishLaunching(_ note: Notification) {
         let args = CommandLine.arguments
@@ -290,21 +275,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             print(ok ? "selftest: GPU pipeline OK, screen capture permission: \(CGPreflightScreenCaptureAccess())" : "selftest: GPU pipeline FAILED")
             exit(ok ? 0 : 1)
         }
+        let fromDesktopApp: Bool
         if let i = args.firstIndex(of: "--state"), i + 1 < args.count {
             statePath = URL(fileURLWithPath: args[i + 1])
+            fromDesktopApp = true
         } else {
+            // Launched by the website (eyelab-overlay:// link) or by hand: keep our own state.
             let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("Godot/app_userdata/Eye Lab")
+                .appendingPathComponent("Eye Lab Overlay")
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
             statePath = dir.appendingPathComponent("overlay.json")
+            fromDesktopApp = false
         }
         timePath = statePath.deletingLastPathComponent().appendingPathComponent("overlay_time.json")
+        if !fromDesktopApp {
+            // The file may still say "off" from last time; the link or the page sets the real mode next.
+            var s = (try? Data(contentsOf: statePath)).flatMap { try? JSONDecoder().decode(FilterSettings.self, from: $0) } ?? FilterSettings()
+            if s.mode == 0 { s.mode = 1 }
+            writeState(s, menu: false)
+        }
         readState()
+        server = LocalServer(app: self)
+        server?.start()
 
         guard let g = GPU() else { fail("This Mac's graphics card couldn't be set up."); return }
         gpu = g
         setupStatusItem()
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in self?.tick() }
-        Task { await self.startCapture() }
+        // --no-capture (development): run the menu and local server without capturing,
+        // so the website link can be tested without a screen-recording prompt.
+        if !args.contains("--no-capture") { Task { await self.startCapture() } }
     }
 
     func startCapture() async {
@@ -366,13 +366,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func writeState(_ s: FilterSettings) {
+    func writeState(_ s: FilterSettings, menu: Bool = true) {
         settings.set(s)
         if let data = try? JSONEncoder().encode(s) {
             try? data.write(to: statePath)
             lastStateData = data
         }
-        rebuildMenu()
+        if menu { rebuildMenu() }
+    }
+
+    /// Settings from the website, through the eyelab-overlay:// link or the local server.
+    func apply(_ s: FilterSettings) {
+        writeState(s)
+        if s.mode == 0 { quit() }
+    }
+
+    /// Filter seconds per day, including what hasn't been flushed yet.
+    func loggedSeconds() -> [String: Double] {
+        flushTime()
+        guard let data = try? Data(contentsOf: timePath),
+              let d = try? JSONDecoder().decode([String: Double].self, from: data) else { return [:] }
+        return d
+    }
+
+    // eyelab-overlay://on?mode=1&lod=3&gain=1.6&keep=0&mix=1 and eyelab-overlay://off
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls where url.scheme == "eyelab-overlay" {
+            var s = settings.get()
+            if url.host == "off" {
+                s.mode = 0
+            } else {
+                let q = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+                func num(_ name: String) -> Double? { q.first { $0.name == name }?.value.flatMap(Double.init) }
+                if let m = num("mode") { s.mode = max(0, min(2, Int(m))) }
+                if let v = num("lod") { s.lod = max(0.5, min(7, v)) }
+                if let v = num("gain") { s.gain = max(0.5, min(4, v)) }
+                if let v = num("keep") { s.keep = max(0, min(1, v)) }
+                if let v = num("mix") { s.mix = max(0, min(1, v)) }
+                if s.mode == 0 { s.mode = 1 }
+            }
+            apply(s)
+        }
     }
 
     func tick() {
@@ -462,6 +496,138 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ note: Notification) {
         flushTime()
+    }
+}
+
+// MARK: - Local server for the website
+
+/// A tiny HTTP server on 127.0.0.1:47823 so the Eye Lab website can see that the
+/// helper is running and change its settings live. Only answers this machine
+/// (bound to the loopback address), only with a Host of 127.0.0.1/localhost (so a
+/// rebound DNS name can't reach it), and only grants CORS to the Eye Lab site and
+/// local development origins.
+///   GET  /status  {"running", "version", "permission", "state", "seconds"}
+///   POST /state   {"mode", "lod", "gain", "keep", "mix"}  (mode 0 turns off and quits)
+final class LocalServer {
+    static let port: UInt16 = 47823
+    weak var app: AppDelegate?
+    private var listener: NWListener?
+    private let queue = DispatchQueue(label: "eyelab.server")
+
+    init(app: AppDelegate) { self.app = app }
+
+    func start() {
+        let params = NWParameters.tcp
+        params.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: NWEndpoint.Port(rawValue: LocalServer.port)!)
+        params.allowLocalEndpointReuse = true
+        guard let l = try? NWListener(using: params) else {
+            NSLog("EyeLabOverlay: local server unavailable")
+            return
+        }
+        l.newConnectionHandler = { [weak self] c in self?.serve(c) }
+        l.start(queue: queue)
+        listener = l
+    }
+
+    private func serve(_ c: NWConnection) {
+        c.start(queue: queue)
+        read(c, Data())
+    }
+
+    private func read(_ c: NWConnection, _ buffer: Data) {
+        c.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, done, error in
+            guard let self else { return }
+            var buf = buffer
+            if let data { buf.append(data) }
+            if error != nil || buf.count > 65536 { c.cancel(); return }
+            guard let headEnd = buf.range(of: Data("\r\n\r\n".utf8)) else {
+                if done { c.cancel() } else { self.read(c, buf) }
+                return
+            }
+            let head = String(decoding: buf[..<headEnd.lowerBound], as: UTF8.self)
+            let lines = head.components(separatedBy: "\r\n")
+            let parts = (lines.first ?? "").split(separator: " ")
+            var headers: [String: String] = [:]
+            for line in lines.dropFirst() {
+                if let i = line.firstIndex(of: ":") {
+                    headers[line[..<i].lowercased()] = line[line.index(after: i)...].trimmingCharacters(in: .whitespaces)
+                }
+            }
+            let length = Int(headers["content-length"] ?? "0") ?? 0
+            let body = buf[headEnd.upperBound...]
+            if body.count < length {
+                if done { c.cancel() } else { self.read(c, buf) }
+                return
+            }
+            let method = parts.count > 0 ? String(parts[0]) : ""
+            let path = parts.count > 1 ? String(parts[1]) : ""
+            self.respond(c, method: method, path: path, headers: headers, body: Data(body.prefix(length)))
+        }
+    }
+
+    private func allowedOrigin(_ origin: String?) -> String? {
+        guard let origin, let url = URL(string: origin), let host = url.host else { return nil }
+        if ["https://mateolarreaferro.com", "https://www.mateolarreaferro.com"].contains(origin) { return origin }
+        if url.scheme == "http" && (host == "localhost" || host == "127.0.0.1") { return origin }
+        return nil
+    }
+
+    private func respond(_ c: NWConnection, method: String, path: String, headers: [String: String], body: Data) {
+        let host = headers["host"] ?? ""
+        guard host == "127.0.0.1:\(LocalServer.port)" || host == "localhost:\(LocalServer.port)" else {
+            send(c, 421, "{}", origin: nil)
+            return
+        }
+        let origin = allowedOrigin(headers["origin"])
+        if headers["origin"] != nil && origin == nil {
+            send(c, 403, "{\"error\":\"origin not allowed\"}", origin: nil)
+            return
+        }
+        switch (method, path) {
+        case ("OPTIONS", _):
+            send(c, 204, "", origin: origin, preflight: true)
+        case ("GET", "/status"):
+            DispatchQueue.main.async {
+                guard let app = self.app else { return }
+                let s = settings.get()
+                let reply: [String: Any] = [
+                    "running": true,
+                    "version": 2,
+                    "permission": CGPreflightScreenCaptureAccess(),
+                    "state": ["mode": s.mode, "lod": s.lod, "gain": s.gain ?? 1.6, "keep": s.keep ?? 0, "mix": s.mix ?? 1],
+                    "seconds": app.loggedSeconds(),
+                ]
+                let json = (try? JSONSerialization.data(withJSONObject: reply)).map { String(decoding: $0, as: UTF8.self) } ?? "{}"
+                self.queue.async { self.send(c, 200, json, origin: origin) }
+            }
+        case ("POST", "/state"):
+            guard let s = try? JSONDecoder().decode(FilterSettings.self, from: body) else {
+                send(c, 400, "{\"error\":\"bad state\"}", origin: origin)
+                return
+            }
+            var clean = s
+            clean.mode = max(0, min(2, s.mode))
+            clean.lod = max(0.5, min(7, s.lod))
+            send(c, 200, "{\"ok\":true}", origin: origin)
+            // Apply after the reply is on its way: mode 0 quits the app.
+            queue.asyncAfter(deadline: .now() + 0.05) {
+                DispatchQueue.main.async { self.app?.apply(clean) }
+            }
+        default:
+            send(c, 404, "{}", origin: origin)
+        }
+    }
+
+    private func send(_ c: NWConnection, _ status: Int, _ body: String, origin: String?, preflight: Bool = false) {
+        let reason = [200: "OK", 204: "No Content", 400: "Bad Request", 403: "Forbidden", 404: "Not Found", 421: "Misdirected Request"][status] ?? "OK"
+        var h = "HTTP/1.1 \(status) \(reason)\r\nContent-Type: application/json\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Length: \(body.utf8.count)\r\n"
+        if let origin {
+            h += "Access-Control-Allow-Origin: \(origin)\r\nVary: Origin\r\n"
+            if preflight {
+                h += "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: content-type\r\nAccess-Control-Allow-Private-Network: true\r\nAccess-Control-Max-Age: 600\r\n"
+            }
+        }
+        c.send(content: Data((h + "\r\n" + body).utf8), completion: .contentProcessed { _ in c.cancel() })
     }
 }
 

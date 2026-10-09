@@ -578,7 +578,7 @@ func _filters_tab() -> void:
 	_param_slider(lp, "Strength", "lp_mix", 0.0, 1.0, 0.05, func(v): return "%d%%" % roundi(v * 100))
 	var foot := HBoxContainer.new()
 	foot.add_theme_constant_override("separation", 12)
-	var note := UI.label("Changes apply right away, in Eye Lab and on the whole screen. Edges uses the high-pass settings.", 12, INK_MUTED, 400, true)
+	var note := UI.label("Changes apply right away, in Eye Lab and on the whole screen.", 12, INK_MUTED, 400, true)
 	note.size_flags_horizontal = SIZE_EXPAND_FILL
 	foot.add_child(note)
 	var reset := UI.apple_button("Reset to defaults", "", "gray", INK, 13, 32.0)

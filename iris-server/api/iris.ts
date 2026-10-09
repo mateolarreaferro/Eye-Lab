@@ -12,11 +12,38 @@ import { MODEL, SYSTEM_PROMPT, TOOLS } from "../lib/iris.js";
 
 const serverClient = new Anthropic(); // ANTHROPIC_API_KEY from the Vercel environment
 
+// The Eye Lab website (mateolarreaferro.com/eyelab) calls this from the browser.
+const ALLOWED_ORIGINS = ["https://mateolarreaferro.com", "https://www.mateolarreaferro.com"];
+const isAllowedOrigin = (o: string | null) =>
+  !!o && (ALLOWED_ORIGINS.includes(o) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o));
+
 const MAX_BODY_BYTES = 300_000;
 const MAX_MESSAGES = 80;          // ~40 exchanges, including tool rounds
 const MAX_USER_TEXT = 2_000;      // characters per typed message
 
 export async function POST(request: Request): Promise<Response> {
+  return withCors(request, await handle(request));
+}
+
+/** Browser preflight for the website's requests (x-anthropic-key is a custom header). */
+export function OPTIONS(request: Request): Response {
+  return withCors(request, new Response(null, { status: 204 }), true);
+}
+
+function withCors(request: Request, response: Response, preflight = false): Response {
+  const origin = request.headers.get("origin");
+  if (!isAllowedOrigin(origin)) return response;
+  response.headers.set("access-control-allow-origin", origin!);
+  response.headers.set("vary", "origin");
+  if (preflight) {
+    response.headers.set("access-control-allow-methods", "POST, OPTIONS");
+    response.headers.set("access-control-allow-headers", "content-type, x-anthropic-key, x-eyelab-key");
+    response.headers.set("access-control-max-age", "600");
+  }
+  return response;
+}
+
+async function handle(request: Request): Promise<Response> {
   const userKey = request.headers.get("x-anthropic-key")?.trim();
   let client = serverClient;
   if (userKey) {

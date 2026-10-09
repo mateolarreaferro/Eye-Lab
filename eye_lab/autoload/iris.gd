@@ -38,7 +38,7 @@ const GAMES := {
 	"pong": "Pong (predictive pursuit)",
 	"patch_room": "Magic glasses (webcam/scene/picture through a filter)",
 }
-const FILTER_MODES := ["off", "high_pass", "low_pass", "edges", "invert", "kaleidoscope"]
+const FILTER_MODES := ["off", "high_pass", "low_pass"]
 
 var messages: Array = []     # full conversation, assistant turns kept verbatim
 var busy := false

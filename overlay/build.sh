@@ -13,10 +13,10 @@ mkdir -p "$APP/Contents/MacOS"
 cp Info.plist "$APP/Contents/Info.plist"
 xcrun swiftc -O -target arm64-apple-macos14.0 main.swift -o /tmp/EyeLabOverlay-arm64 \
 	-framework AppKit -framework ScreenCaptureKit -framework Metal \
-	-framework MetalPerformanceShaders -framework CoreMedia -framework CoreVideo -framework QuartzCore
+	-framework MetalPerformanceShaders -framework CoreMedia -framework CoreVideo -framework QuartzCore -framework Network
 xcrun swiftc -O -target x86_64-apple-macos14.0 main.swift -o /tmp/EyeLabOverlay-x86_64 \
 	-framework AppKit -framework ScreenCaptureKit -framework Metal \
-	-framework MetalPerformanceShaders -framework CoreMedia -framework CoreVideo -framework QuartzCore
+	-framework MetalPerformanceShaders -framework CoreMedia -framework CoreVideo -framework QuartzCore -framework Network
 lipo -create /tmp/EyeLabOverlay-arm64 /tmp/EyeLabOverlay-x86_64 -output "$APP/Contents/MacOS/EyeLabOverlay"
 codesign --force --sign - --identifier com.mateolarrea.eyelab.overlay "$APP"
 echo "Built $APP"

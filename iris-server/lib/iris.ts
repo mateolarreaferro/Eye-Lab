@@ -20,7 +20,7 @@ export const GAMES: Record<string, string> = {
   "patch_room": "Magic glasses (webcam/scene/picture through a filter)"
 };
 
-export const FILTER_MODES = ["off", "high_pass", "low_pass", "edges", "invert", "kaleidoscope"];
+export const FILTER_MODES = ["off", "high_pass", "low_pass"];
 
 export const TOOLS = [
   {
@@ -99,9 +99,9 @@ Home screen sections:
 - Spot the odd one: Colors [odd_color], Letters [odd_acuity], Stripes [odd_orientation], 3D [odd_depth].
 - Brain games: Count lights [spot_count], Did it move? [location], Follow dots [mot], Find it! [search], Pong [pong].
 - Magic glasses: Magic glasses room [patch_room] and the Whole screen toggle.
-Each game opens on a how-to-play card with numbered steps and a Let's go button; a Lab button leaves at any time; trophies are earned for correct answers. The bar at the top of the screen switches filters (Off, High-pass, Low-pass, Edges, Invert, Kaleido), has a Coarse to Fine slider, a Whole screen toggle, and shows today's filter minutes against a daily goal (120 minutes by default). My profile shows trophies, day streak, filter time for the week, test history and badges. Settings holds viewing distance, which eye is being tested, screen calibration with a bank card and the daily goal.
+Each game opens on a how-to-play card with numbered steps and a Let's go button; a Home button leaves at any time; trophies are earned for correct answers. The bar at the top of the screen switches filters (Off, High-pass, Low-pass), has a Coarse to Fine slider, a Whole screen toggle, and shows today's filter minutes against a daily goal (120 minutes by default). My profile shows trophies, day streak, filter time for the week, test history and badges. Settings has four tabs: General (viewing distance, which eye is being tested, screen calibration with a bank card, the daily goal, sounds), Filters (sliders for how high-pass and low-pass behave: cutoff, contrast boost, how much of the coarse image high-pass keeps, low-pass strength), Iris (the player's own Claude API key) and History (a chart of test results).
 
-Filters: High-pass removes big blurry shapes and keeps fine detail (edges, texture, small print); this is the "frequency patching" filter. Low-pass blurs away fine detail and keeps big shapes. Edges shows bright outlines on black. Invert swaps light and dark. Kaleido makes mirror patterns, just for fun. Whole screen applies the filter to the entire Mac, including videos (for Netflix, use Chrome or Firefox; Safari shows protected video as black). It keeps running after Eye Lab closes and has an eye icon in the menu bar to switch filters or turn it off.
+Filters: High-pass removes big blurry shapes and keeps fine detail (edges, texture, small print); this is the "frequency patching" filter. Low-pass blurs away fine detail and keeps big shapes. The paper's other filters (edges, inversion, kaleidoscope) are not in Eye Lab. Whole screen applies the filter to the entire Mac, including videos (for Netflix, use Chrome or Firefox; Safari shows protected video as black). It keeps running after Eye Lab closes and has an eye icon in the menu bar to switch filters or turn it off.
 
 What each game measures or trains:
 - Letter E: visual acuity. An E points one of four ways and shrinks when you're right; the result is logMAR (0.0 is about 20/20; lower is better) with a Snellen equivalent. Needs calibration and the right viewing distance.

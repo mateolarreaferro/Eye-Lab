@@ -4,16 +4,13 @@ extends CanvasLayer
 ## always stays readable. Keyboard shortcuts still work: Tab cycles, [ ] cutoff, H hides.
 ## Time spent with any filter on counts toward the daily "frequency patching" dose.
 
-enum Mode { OFF, HIGH_PASS, LOW_PASS, EDGES, INVERT, KALEIDOSCOPE }
-const NAMES := ["Off", "High-pass", "Low-pass", "Edges", "Invert", "Kaleido"]
-const ICONS := ["filter_off", "high_pass", "low_pass", "edges", "invert", "kaleido"]
+enum Mode { OFF, HIGH_PASS, LOW_PASS }
+const NAMES := ["Off", "High-pass", "Low-pass"]
+const ICONS := ["filter_off", "high_pass", "low_pass"]
 const TIPS := [
 	"No filter",
 	"Removes coarse shapes and keeps fine detail. This is the \"frequency patching\" filter.",
 	"Blurs away fine detail and keeps coarse shapes",
-	"Bright outlines of edges on black",
-	"Swaps light and dark",
-	"Mirror patterns, just for fun",
 ]
 
 
@@ -24,12 +21,12 @@ signal params_changed
 ## How the high-pass and low-pass filters behave; set from Settings > Filters and
 ## saved in Lab.settings["filter"]. lod: blur scale 2^lod px (higher = coarser cutoff).
 ## hp_gain: contrast boost of what's left. hp_keep: share of the coarse image kept
-## (0 = pure high-pass). lp_mix: 0 = original, 1 = fully blurred. Edges share hp_*.
+## (0 = pure high-pass). lp_mix: 0 = original, 1 = fully blurred.
 const DEFAULTS := {"hp_lod": 3.0, "hp_gain": 1.6, "hp_keep": 0.0, "lp_lod": 3.0, "lp_mix": 1.0}
 
 var mode: int = Mode.OFF
 var params: Dictionary = DEFAULTS.duplicate()
-## Cutoff of the current filter (low-pass has its own; the others use high-pass's).
+## Cutoff of the current filter (high-pass and low-pass each have their own).
 var cutoff_lod: float:
 	get:
 		return float(params[_lod_key()])
@@ -253,7 +250,7 @@ func set_mode(m: int) -> void:
 	_apply_params()
 	for i in _buttons.size():
 		_buttons[i].set_pressed_no_signal(i == mode)
-	_cutoff_box.visible = mode in [Mode.HIGH_PASS, Mode.LOW_PASS, Mode.EDGES]
+	_cutoff_box.visible = mode != Mode.OFF
 	_fit_bar.call_deferred()
 	_update_labels()
 	mode_changed.emit(mode)
@@ -440,6 +437,8 @@ func _sync_from_overlay() -> void:
 	if typeof(d) != TYPE_DICTIONARY:
 		return
 	var m := int(d.get("mode", mode))
+	if m >= NAMES.size():
+		m = Mode.HIGH_PASS   # a mode this version no longer has
 	var lod := float(d.get("lod", cutoff_lod))
 	if m == 0:
 		system_on = false
@@ -453,7 +452,7 @@ func _sync_from_overlay() -> void:
 		params_changed.emit()
 		for i in _buttons.size():
 			_buttons[i].set_pressed_no_signal(i == mode)
-		_cutoff_box.visible = mode in [Mode.HIGH_PASS, Mode.LOW_PASS, Mode.EDGES]
+		_cutoff_box.visible = mode != Mode.OFF
 		_update_labels()
 		mode_changed.emit(mode)
 
@@ -468,7 +467,7 @@ func _detect_running_overlay() -> void:
 	var d = JSON.parse_string(FileAccess.get_file_as_string(_state_path()))
 	if typeof(d) == TYPE_DICTIONARY and int(d.get("mode", 0)) != 0:
 		system_on = true
-		mode = int(d["mode"])
+		mode = clampi(int(d["mode"]), Mode.HIGH_PASS, Mode.LOW_PASS)
 		params[_lod_key()] = float(d.get("lod", cutoff_lod))
 		_sys_btn.set_pressed_no_signal(true)
 		set_mode(mode)

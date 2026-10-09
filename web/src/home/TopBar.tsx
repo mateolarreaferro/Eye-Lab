@@ -2,13 +2,15 @@ import { GearSix } from "@phosphor-icons/react";
 import { openPanel, openTab, useNav, type Tab } from "../lib/nav";
 import { sfxProps } from "../lib/sfx";
 import { leavePlayer, useLab } from "../lib/lab";
+import { useFilter } from "../lib/filter";
 import { PrakashLogo } from "../ui/Logo";
 import { Avatar } from "../app/Welcome";
 
 /*
   The bar across the top of Home: the logo, the two tabs (Games, My progress),
-  then Settings, Iris as the one navy pill, and the player, whose chip goes
-  back to "Who's playing?". It sits inside the filtered stage (the user wants
+  then Iris as the one navy pill, the gear for Settings (where the filter and
+  eye tracking are switched; a dot on the gear says one of them is on), and
+  the player, whose chip goes back to "Who's playing?". It sits inside the filtered stage (the user wants
   the filter on everything). On small screens the tabs get their own row.
 */
 export function TopBar() {
@@ -29,19 +31,20 @@ export function TopBar() {
         <nav className="ml-auto flex shrink-0 items-center gap-2" aria-label="Main">
           <button
             {...sfxProps}
-            onClick={() => openPanel("settings")}
-            aria-label="Settings"
-            className="flex h-10 items-center gap-2 rounded-full px-3 text-[15px] font-medium whitespace-nowrap text-body transition-colors duration-200 hover:text-ink"
-          >
-            <GearSix size={20} weight="light" aria-hidden className="sm:hidden" />
-            <span className="hidden sm:inline">Settings</span>
-          </button>
-          <button
-            {...sfxProps}
             onClick={() => openPanel("iris")}
             className="h-10 rounded-full bg-primary px-5 text-[15px] font-semibold whitespace-nowrap text-card transition-colors duration-200 hover:bg-primary-hover"
           >
             Ask Iris
+          </button>
+          <button
+            {...sfxProps}
+            onClick={() => openPanel("settings", "general")}
+            aria-label="Settings: filter, eye tracking and more"
+            title="Settings: filter, eye tracking and more"
+            className="relative flex size-10 items-center justify-center rounded-full border border-hairline-strong text-ink transition-colors duration-200 hover:bg-canvas-soft"
+          >
+            <GearSix size={20} weight="light" aria-hidden />
+            <SessionDot />
           </button>
           <PlayerChip />
         </nav>
@@ -98,4 +101,12 @@ function PlayerChip() {
       <span className="hidden max-w-[10rem] truncate text-[15px] font-medium sm:inline">{name}</span>
     </button>
   );
+}
+
+/** A small sky-blue dot on the gear while a filter or eye tracking is on. */
+function SessionDot() {
+  const { mode } = useFilter();
+  const { eyeTracking } = useLab().settings;
+  if (mode === 0 && !eyeTracking) return null;
+  return <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-accent ring-2 ring-canvas" aria-hidden />;
 }

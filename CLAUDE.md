@@ -30,9 +30,12 @@ Vision games, tests and spatial-frequency filters for the Sinha lab. Repo: githu
   `eyelab:v1:<id>`, the list `eyelab:players`; distance, calibration and sound are per device
   (`eyelab:device`). The old single `eyelab:v1` migrates to the first player (`lib/lab.ts`). Also
   `eyelab:filter`, `eyelab:iris-key`; the Iris key stays out of the progress data so `get_progress` never sees it.
-- Home is one screen tall with no vertical scroll: tabs Games (every game in one horizontal snap row,
-  section chips jump along it) and My progress (`progress/ProgressPage.tsx`, scrolls inside the tab).
-- The Eye tracking switch on Home records the eyes during any game (`lib/sessionEyes.ts`, wired in
+- Home is one screen tall with no vertical scroll: tabs Games (every game in one horizontal snap row
+  inside the page margins, centred vertically in the space under the section chips, which jump along
+  it) and My progress (`progress/ProgressPage.tsx`, scrolls inside the tab). The filter and eye
+  tracking are not on Home: they sit under "This session" in Settings, behind the gear at the top
+  right, which shows a dot while either is on (the user asked for that on 2026-10-09).
+- The Eye tracking switch in Settings records the eyes during any game (`lib/sessionEyes.ts`, wired in
   `ExerciseShell`): camera check on the how-to-play card, a summary per session, a CSV on the result card.
   Games that use the camera themselves are skipped (`OWNS_CAMERA`).
 - `?game=<key>` opens a game directly.

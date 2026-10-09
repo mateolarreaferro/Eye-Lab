@@ -11,9 +11,10 @@ import { DEFAULT_PARAMS, LIMITS, lodToCpd, resetParams, setParam, useFilter, typ
 import { iris, setApiKey, keySource } from "../lib/iris";
 import { sfxProps } from "../lib/sfx";
 import { HistoryChart } from "../progress/HistoryChart";
+import { CutoffSlider, FilterModes } from "../filter/FilterBar";
 
 /*
-  Settings: General (viewing setup and app), Filters (how high-pass and
+  Settings: General (this session's filter and eye tracking, viewing setup, app), Filters (how high-pass and
   low-pass behave), Iris (the player's Claude API key) and History.
 */
 
@@ -99,6 +100,18 @@ function General() {
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
   return (
     <>
+      <Group title="This session">
+        <Row label="Filter">
+          <FilterModes />
+        </Row>
+        <CutoffSlider width="w-40" />
+        <Row label="Eye tracking during games">
+          <Switch on={settings.eyeTracking} onChange={(on) => setSetting("eyeTracking", on)} label="Eye tracking during games" />
+        </Row>
+        <p className="-mt-2 max-w-[56ch] text-[15px] leading-snug text-muted">
+          Records the eyes with the webcam while you play. The video stays on this device.
+        </p>
+      </Group>
       <Group title="Viewing setup">
         <Row label="Distance from eyes to screen">
           <Stepper

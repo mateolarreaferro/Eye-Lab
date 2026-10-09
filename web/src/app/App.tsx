@@ -27,7 +27,9 @@ export function App() {
   const [stage, setStage] = useState<HTMLDivElement | null>(null);
   const filtering = mode !== 0 && !wholeScreen;
 
-  useEffect(() => startHelperPolling(), []);
+  useEffect(() => {
+    return startHelperPolling();
+  }, []);
 
   // ?game=<key> opens a game directly (a link to one game for the lab).
   useEffect(() => {

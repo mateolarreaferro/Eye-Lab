@@ -29,6 +29,10 @@ Vision games, tests and spatial-frequency filters for the Sinha lab. Repo: githu
 - Player data is localStorage (`eyelab:v1`, `eyelab:filter`, `eyelab:iris-key`); the Iris key stays out
   of the progress data so `get_progress` never sees it.
 - `?game=<key>` opens a game directly.
+- **Effects take block bodies** (`useEffect(() => { ... })`). React treats any returned value as the
+  cleanup, and newer Chrome (154+) returns a Promise from `scrollIntoView`/`scrollTo`, so a one-line
+  `useEffect(() => el.scrollIntoView())` crashed the whole page on its next re-run (fixed 2026-10-08).
+  `ui/ErrorBoundary.tsx` keeps any future crash from blanking the page.
 - Check visually with Playwright, not the Chrome extension: the extension's tab reports
   `visibilityState: hidden`, which pauses animation frames and freezes Motion mid-slide. Use
   `playwright-core` from `~/Desktop/repos/MLF-Web/node_modules` with the headless shell in

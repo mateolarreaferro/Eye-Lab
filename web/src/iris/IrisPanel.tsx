@@ -23,7 +23,11 @@ export function IrisPanel() {
   const name = settings.name.trim();
 
   const reduce = useReducedMotion();
-  useEffect(() => end.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "end" }), [bubbles.length, busy, reduce]);
+  // Block body on purpose: newer Chrome returns a Promise from scrollIntoView, and
+  // React would take a returned Promise for the cleanup function and crash.
+  useEffect(() => {
+    end.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "end" });
+  }, [bubbles.length, busy, reduce]);
 
   const submit = (q: string) => {
     if (!q.trim() || busy) return;

@@ -1,10 +1,13 @@
 import { createStore, loadJSON, saveJSON } from "./store";
 
 /*
-  The player's data, kept in this browser's localStorage under one key:
-  settings, test results, finished sessions, trophies and daily filter time.
-  Port of eye_lab/autoload/lab.gd. The whole-screen helper logs its own filter
-  seconds, which lib/helper.ts reads and adds in through `helperSeconds`.
+  Each player's data, kept in this browser's localStorage under one key per
+  player (eyelab:v1:<id>): settings, test results, finished sessions, trophies
+  and daily filter time. The player list is eyelab:players. Screen settings
+  (distance, calibration) and sound belong to the device, not the player, and
+  live in eyelab:device. Port of eye_lab/autoload/lab.gd. The whole-screen
+  helper logs its own filter seconds, which lib/helper.ts reads and adds in
+  through `helperSeconds`.
 */
 
 export type Eye = "Both" | "Left" | "Right";
@@ -16,6 +19,8 @@ export interface Settings {
   eye: Eye;
   name: string;
   sound: boolean;
+  /** Record the eyes with the webcam during games. */
+  eyeTracking: boolean;
 }
 
 export interface Result {
@@ -29,11 +34,23 @@ export interface Result {
   detail: Record<string, unknown>;
 }
 
+/** What eye tracking saw during one game. */
+export interface EyeSummary {
+  /** Share of camera frames with both eyes open and found, 0..1. */
+  tracked: number;
+  fps: number;
+  seconds: number;
+  /** Regular back-and-forth movement, when one stood out. */
+  oscHz: number | null;
+  oscPpDeg: number | null;
+}
+
 export interface Session {
   date: string;
   id: string;
   title: string;
   trophies: number;
+  eye?: EyeSummary;
 }
 
 interface LabData {
@@ -45,7 +62,18 @@ interface LabData {
   helperSeconds: Record<string, number>;
 }
 
-const KEY = "eyelab:v1";
+export interface Player {
+  id: string;
+  name: string;
+  /** Last time this player was picked (ms), for ordering the picker. */
+  lastSeen: number;
+}
+
+const OLD_KEY = "eyelab:v1";
+const PLAYERS_KEY = "eyelab:players";
+const DEVICE_KEY = "eyelab:device";
+const playerKey = (id: string) => `${OLD_KEY}:${id}`;
+const DEVICE_SETTINGS = ["distanceCm", "pxPerCm", "sound"] as const;
 
 const DEFAULT_SETTINGS: Settings = {
   distanceCm: 57,
@@ -54,12 +82,14 @@ const DEFAULT_SETTINGS: Settings = {
   eye: "Both",
   name: "",
   sound: true,
+  eyeTracking: false,
 };
 
-function load(): LabData {
-  const d = loadJSON<Partial<LabData>>(KEY, {});
+function load(id: string | null): LabData {
+  const d = id ? loadJSON<Partial<LabData>>(playerKey(id), {}) : {};
+  const device = loadJSON<Partial<Settings>>(DEVICE_KEY, {});
   return {
-    settings: { ...DEFAULT_SETTINGS, ...(d.settings ?? {}) },
+    settings: { ...DEFAULT_SETTINGS, ...(d.settings ?? {}), ...device },
     results: d.results ?? [],
     sessions: d.sessions ?? [],
     stars: d.stars ?? 0,
@@ -68,20 +98,109 @@ function load(): LabData {
   };
 }
 
-export const lab = createStore<LabData>(load());
+/** Before players existed everything sat under eyelab:v1; that becomes the first player. */
+function migrate(): Player[] {
+  const list = loadJSON<Player[] | null>(PLAYERS_KEY, null);
+  if (list) return list;
+  const old = loadJSON<Partial<LabData> | null>(OLD_KEY, null);
+  if (!old) return [];
+  const id = newId();
+  const name = old.settings?.name?.trim() || "Player 1";
+  const device: Partial<Settings> = {};
+  for (const k of DEVICE_SETTINGS) if (old.settings && k in old.settings) Object.assign(device, { [k]: old.settings[k] });
+  saveJSON(DEVICE_KEY, device);
+  saveJSON(playerKey(id), { ...old, settings: { ...old.settings, name } });
+  const players = [{ id, name, lastSeen: Date.now() }];
+  saveJSON(PLAYERS_KEY, players);
+  return players;
+}
+
+const newId = () => Math.random().toString(36).slice(2, 10);
+
+/** The players on this device, and who is playing now (null until someone is picked). */
+export const players = createStore<{ list: Player[]; current: string | null }>({ list: migrate(), current: null });
+export const usePlayers = players.use;
+
+export const lab = createStore<LabData>(load(null));
+
+function save() {
+  const id = players.get().current;
+  if (!id) return;
+  const d = lab.get();
+  const device: Record<string, unknown> = {};
+  for (const k of DEVICE_SETTINGS) device[k] = d.settings[k];
+  saveJSON(DEVICE_KEY, device);
+  saveJSON(playerKey(id), d);
+}
 
 let saveTimer = 0;
 lab.subscribe(() => {
   // Filter time ticks every second; batch writes instead of saving each change.
   window.clearTimeout(saveTimer);
-  saveTimer = window.setTimeout(() => saveJSON(KEY, lab.get()), 400);
+  saveTimer = window.setTimeout(save, 400);
 });
-window.addEventListener("pagehide", () => saveJSON(KEY, lab.get()));
+window.addEventListener("pagehide", save);
+
+/** Switch to a player: saves the current one first. */
+export function choosePlayer(id: string) {
+  window.clearTimeout(saveTimer);
+  save();
+  players.set((p) => {
+    const list = p.list.map((x) => (x.id === id ? { ...x, lastSeen: Date.now() } : x));
+    saveJSON(PLAYERS_KEY, list);
+    return { list, current: id };
+  });
+  lab.set(load(id));
+}
+
+export function addPlayer(name: string) {
+  const id = newId();
+  const clean = name.trim().slice(0, 40);
+  saveJSON(playerKey(id), { settings: { name: clean } });
+  players.set((p) => {
+    const list = [...p.list, { id, name: clean, lastSeen: Date.now() }];
+    saveJSON(PLAYERS_KEY, list);
+    return { ...p, list };
+  });
+  choosePlayer(id);
+}
+
+/** Back to the picker (the current player's data is saved first). */
+export function leavePlayer() {
+  window.clearTimeout(saveTimer);
+  save();
+  players.set((p) => ({ ...p, current: null }));
+}
+
+export function removePlayer(id: string) {
+  if (players.get().current === id) leavePlayer();
+  try {
+    localStorage.removeItem(playerKey(id));
+  } catch {
+    /* storage unavailable */
+  }
+  players.set((p) => {
+    const list = p.list.filter((x) => x.id !== id);
+    saveJSON(PLAYERS_KEY, list);
+    return { ...p, list };
+  });
+}
 
 export const useLab = lab.use;
 
 export function setSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
   lab.set((d) => ({ ...d, settings: { ...d.settings, [key]: value } }));
+}
+
+/** Renames the current player (Settings > General). */
+export function renamePlayer(name: string) {
+  setSetting("name", name);
+  const id = players.get().current;
+  players.set((p) => {
+    const list = p.list.map((x) => (x.id === id ? { ...x, name } : x));
+    saveJSON(PLAYERS_KEY, list);
+    return { ...p, list };
+  });
 }
 
 // --- dates ------------------------------------------------------------------
@@ -109,10 +228,10 @@ export function filterMinutesOn(data: LabData, date: string): number {
 
 // --- sessions, results, streaks -----------------------------------------------------
 
-export function recordSession(id: string, title: string, trophies: number) {
+export function recordSession(id: string, title: string, trophies: number, eye?: EyeSummary) {
   lab.set((s) => ({
     ...s,
-    sessions: [...s.sessions, { date: today(), id, title, trophies }],
+    sessions: [...s.sessions, { date: today(), id, title, trophies, ...(eye ? { eye } : {}) }],
     stars: s.stars + trophies,
   }));
 }
@@ -163,7 +282,7 @@ export function playsByGame(data: LabData): Record<string, number> {
 export const BETTER: Record<string, "higher" | "lower"> = {
   acuity: "lower", contrast: "higher", field_map: "higher", mot: "higher", pong: "higher",
   search: "lower", spot_count: "lower", location: "lower", odd_color: "lower", odd_acuity: "lower",
-  odd_orientation: "lower", odd_depth: "lower",
+  odd_orientation: "lower", odd_depth: "lower", eye_movement: "lower",
 };
 
 /** Snapshot for the progress page and Iris's get_progress tool. */

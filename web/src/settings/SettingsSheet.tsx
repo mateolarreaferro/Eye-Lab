@@ -6,7 +6,7 @@ import { Sheet } from "../ui/Sheet";
 import { Switch } from "../ui/Switch";
 import { CALIBRATE } from "../app/catalog";
 import { openGame, openPanel, useNav, type SettingsTab } from "../lib/nav";
-import { isCalibrated, pxPerDeg, setSetting, useLab, type Eye } from "../lib/lab";
+import { isCalibrated, pxPerDeg, renamePlayer, setSetting, useLab, type Eye } from "../lib/lab";
 import { DEFAULT_PARAMS, LIMITS, lodToCpd, resetParams, setParam, useFilter, type FilterParams } from "../lib/filter";
 import { iris, setApiKey, keySource } from "../lib/iris";
 import { sfxProps } from "../lib/sfx";
@@ -148,8 +148,8 @@ function General() {
             name="name"
             autoComplete="nickname"
             value={settings.name}
-            onChange={(e) => setSetting("name", e.target.value.slice(0, 40))}
-            placeholder="Optional"
+            onChange={(e) => renamePlayer(e.target.value.slice(0, 40))}
+            placeholder="Name"
             className="h-11 w-56 rounded-full bg-card px-5 text-[16px] text-ink border border-hairline-strong outline-none placeholder:text-muted-soft focus-visible:border-ink focus-visible:ring-1 focus-visible:ring-ink"
           />
         </label>

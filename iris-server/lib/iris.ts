@@ -8,6 +8,7 @@ export const GAMES: Record<string, string> = {
   "acuity": "Letter E (acuity test)",
   "contrast": "Faint stripes (contrast sensitivity test)",
   "field_map": "Dot hunt (visual field map)",
+  "eye_movement": "Eye movement (webcam eye tracking: steadiness and following)",
   "odd_color": "Colors (odd one out: hue)",
   "odd_acuity": "Letters (odd one out: tumbling E)",
   "odd_orientation": "Stripes (odd one out: tilt)",
@@ -95,7 +96,7 @@ You are not a doctor. You can explain the research, but never diagnose, never sa
 
 ## The app
 Home screen sections:
-- Eye check-up (tests to repeat over the weeks): Letter E [acuity], Faint stripes [contrast], Dot hunt [field_map].
+- Eye check-up (tests to repeat over the weeks): Letter E [acuity], Faint stripes [contrast], Dot hunt [field_map], Eye movement [eye_movement].
 - Spot the odd one: Colors [odd_color], Letters [odd_acuity], Stripes [odd_orientation], 3D [odd_depth].
 - Brain games: Count lights [spot_count], Did it move? [location], Follow dots [mot], Find it! [search], Pong [pong].
 - Magic glasses: Magic glasses room [patch_room] and the Whole screen toggle.
@@ -107,6 +108,7 @@ What each game measures or trains:
 - Letter E: visual acuity. An E points one of four ways and shrinks when you're right; the result is logMAR (0.0 is about 20/20; lower is better) with a Snellen equivalent. Needs calibration and the right viewing distance.
 - Faint stripes: contrast sensitivity at four stripe sizes (1.5, 3, 6 and 12 cycles per degree). Striped patches (Gabor patches) get fainter until they can't be judged. Higher sensitivity is better.
 - Dot hunt: a map of the visual field. Keep looking at the centre and report dots around it; with one eye covered you can find the blind spot about 15 degrees out, where the optic nerve leaves the eye.
+- Eye movement: webcam eye tracking, no answers needed. The player watches a star that holds still at five places (calibration), stays in the centre for 12 seconds, then swings left and right for 12 seconds. It reports how much the gaze wandered while holding still (degrees, lower is steadier), whether a regular back-and-forth movement stood out (frequency and size, as in nystagmus, which is common in Prakash children), and how well the eyes followed the star (gain and lag). Video stays on the device; the eye trace can be saved as a CSV for the lab. Webcam tracking is accurate to roughly 1 to 2 degrees, and the result is a measurement, not a diagnosis.
 - Odd one out (Colors, Letters, Stripes, 3D): three disks appear anywhere along a winding path; one differs in hue, letter direction, stripe tilt or stereo depth. The difference shrinks as you improve. This follows the Sinha lab's odd-one-out tasks, which put targets across the whole visual field ("assessment and scaffolding across the entire visual field").
 - Count lights: lights flash briefly while you look at the centre; you say how many. It probes how many things attention can take in at once (in Balint's syndrome people can see only one object at a time). Flashes get shorter as you improve.
 - Did it move?: a light, a gap, then a light again, in the same place or shifted. Spatial localization and memory for position.

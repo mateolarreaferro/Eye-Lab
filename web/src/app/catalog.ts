@@ -1,7 +1,7 @@
 import type { Icon } from "@phosphor-icons/react";
 import {
   ArrowsOutCardinal, Barcode, Brain, Camera, CircleHalf, CirclesThree, CreditCard, Crosshair, Cube, Eye,
-  Eyeglasses, Lightbulb, MagnifyingGlass, Palette, PingPong, Shapes, TextAa,
+  Eyeglasses, Lightbulb, ScanSmiley, MagnifyingGlass, Palette, PingPong, Shapes, TextAa,
 } from "@phosphor-icons/react";
 import type { Exercise } from "../exercise/Exercise";
 
@@ -52,6 +52,7 @@ export const GAMES: GameDef[] = [
   { key: "acuity", section: "checkup", name: "Letter E", tag: "Smallest letter", desc: "Acuity test: which way does the E point?", icon: TextAa, load: () => import("../exercises/acuity") },
   { key: "contrast", section: "checkup", name: "Faint stripes", tag: "Faintest pattern", desc: "Contrast sensitivity: how faint can you see?", icon: CircleHalf, load: () => import("../exercises/contrast") },
   { key: "field_map", section: "checkup", name: "Dot hunt", tag: "Your field of view", desc: "Visual field map: spot dots around the edges", icon: Crosshair, load: () => import("../exercises/fieldMap") },
+  { key: "eye_movement", section: "checkup", name: "Eye movement", tag: "Webcam eye tracking", desc: "Watch a star: how steady are the eyes, and do they follow?", icon: ScanSmiley, load: () => import("../exercises/eyeMovement") },
   { key: "odd_color", section: "odd", name: "Colors", tag: "Hue difference", desc: "Which disk has a different color?", icon: Palette, config: { mode: "color" }, load: () => import("../exercises/oddOneOut") },
   { key: "odd_acuity", section: "odd", name: "Letters", tag: "Letter direction", desc: "Which E points another way?", icon: TextAa, config: { mode: "acuity" }, load: () => import("../exercises/oddOneOut") },
   { key: "odd_orientation", section: "odd", name: "Stripes", tag: "Tilt difference", desc: "Which stripes are tilted?", icon: Barcode, config: { mode: "orientation" }, load: () => import("../exercises/oddOneOut") },

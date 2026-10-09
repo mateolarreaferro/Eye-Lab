@@ -12,17 +12,22 @@ import { openGame, useNav } from "../lib/nav";
 import { gameByKey } from "./catalog";
 import { SettingsSheet } from "../settings/SettingsSheet";
 import { IrisPanel } from "../iris/IrisPanel";
-import { ProgressPanel } from "../progress/ProgressPanel";
+import { ProgressPage } from "../progress/ProgressPage";
+import { Welcome } from "./Welcome";
+import { usePlayers } from "../lib/lab";
 
 /*
   Layers, bottom to top:
-  1. The stage: Home with its top bar, or the running game's canvas, inside the vision filter.
+  0. Welcome: the splash and "Who's playing?", until a player is picked.
+  1. The stage: Home (top bar plus the Games or My progress tab, one screen tall),
+     or the running game's canvas, inside the vision filter.
   2. Chrome: a game's controls and its floating filter bar; never filtered.
-  3. Panels: Settings, Progress and Iris, sliding in from the right.
+  3. Panels: Settings and Iris, sliding in from the right.
   With Whole screen on, the helper filters everything, so the stage filter is off.
 */
 export function App() {
-  const { game, run, panel } = useNav();
+  const { game, run, panel, tab } = useNav();
+  const { current } = usePlayers();
   const { mode, wholeScreen } = useFilter();
   const [stage, setStage] = useState<HTMLDivElement | null>(null);
   const filtering = mode !== 0 && !wholeScreen;
@@ -31,11 +36,13 @@ export function App() {
     return startHelperPolling();
   }, []);
 
-  // ?game=<key> opens a game directly (a link to one game for the lab).
+  // ?game=<key> opens a game directly (a link to one game for the lab), once a player is picked.
+  const [linked, setLinked] = useState(() => gameByKey(new URLSearchParams(location.search).get("game") ?? ""));
   useEffect(() => {
-    const g = gameByKey(new URLSearchParams(location.search).get("game") ?? "");
-    if (g) openGame(g);
-  }, []);
+    if (!current || !linked) return;
+    openGame(linked);
+    setLinked(undefined);
+  }, [current, linked]);
 
   // Count filter time toward the daily goal while the page is visible.
   useEffect(() => {
@@ -49,17 +56,21 @@ export function App() {
   return (
     <MotionConfig reducedMotion="user">
       <FilterDefs />
-      <div ref={setStage} className="min-h-dvh" style={{ filter: filtering ? `url(#${FILTER_ID})` : undefined }}>
-        {!game && <TopBar />}
-        {!game && <Home />}
+      <div
+        ref={setStage}
+        className={game ? "min-h-dvh" : "flex h-dvh flex-col overflow-hidden"}
+        style={{ filter: filtering ? `url(#${FILTER_ID})` : undefined }}
+      >
+        {!game && current && <TopBar />}
+        {!game && current && (tab === "games" ? <Home /> : <ProgressPage />)}
       </div>
       {game && stage && <ExerciseShell key={run} game={game} stage={stage} />}
       {game && <FilterBar />}
       <AnimatePresence>
         {panel === "settings" && <SettingsSheet key="settings" />}
-        {panel === "progress" && <ProgressPanel key="progress" />}
         {panel === "iris" && <IrisPanel key="iris" />}
       </AnimatePresence>
+      <AnimatePresence>{!current && <Welcome key="welcome" />}</AnimatePresence>
     </MotionConfig>
   );
 }

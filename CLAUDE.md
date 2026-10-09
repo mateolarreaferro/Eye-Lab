@@ -26,9 +26,21 @@ Vision games, tests and spatial-frequency filters for the Sinha lab. Repo: githu
   0..1 and keeps colour at or below alpha, which is why high-pass is built in three steps; read that
   file's comment before changing the math. Only Off, High-pass and Low-pass exist (edges, invert and
   kaleidoscope were removed on purpose).
-- Player data is localStorage (`eyelab:v1`, `eyelab:filter`, `eyelab:iris-key`); the Iris key stays out
-  of the progress data so `get_progress` never sees it.
+- Opening: a splash once per visit, then "Who's playing?" (`app/Welcome.tsx`). Each player's progress is
+  `eyelab:v1:<id>`, the list `eyelab:players`; distance, calibration and sound are per device
+  (`eyelab:device`). The old single `eyelab:v1` migrates to the first player (`lib/lab.ts`). Also
+  `eyelab:filter`, `eyelab:iris-key`; the Iris key stays out of the progress data so `get_progress` never sees it.
+- Home is one screen tall with no vertical scroll: tabs Games (every game in one horizontal snap row,
+  section chips jump along it) and My progress (`progress/ProgressPage.tsx`, scrolls inside the tab).
+- The Eye tracking switch on Home records the eyes during any game (`lib/sessionEyes.ts`, wired in
+  `ExerciseShell`): camera check on the how-to-play card, a summary per session, a CSV on the result card.
+  Games that use the camera themselves are skipped (`OWNS_CAMERA`).
 - `?game=<key>` opens a game directly.
+- **Eye movement** (`exercises/eyeMovement.ts`) tracks the eyes with MediaPipe Face Landmarker in the browser
+  (`lib/eyeTracker.ts`); video never leaves the device, and the runtime and model come from jsDelivr and Google
+  storage (pin in `eyeTracker.ts` follows `package.json`). The analysis in `lib/eyeMetrics.ts` is DOM-free so it
+  can be checked with synthetic signals; its thresholds are first guesses, not tuned on Prakash data.
+  Headless Chromium can feed a face video as the camera (`--use-file-for-fake-video-capture=face.y4m`).
 - **Effects take block bodies** (`useEffect(() => { ... })`). React treats any returned value as the
   cleanup, and newer Chrome (154+) returns a Promise from `scrollIntoView`/`scrollTo`, so a one-line
   `useEffect(() => el.scrollIntoView())` crashed the whole page on its next re-run (fixed 2026-10-08).

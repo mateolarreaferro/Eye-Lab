@@ -1,6 +1,6 @@
 import { createStore, loadJSON, saveJSON } from "./store";
 import { GAMES, gameByKey } from "../app/catalog";
-import { goHome, openGame, openPanel } from "./nav";
+import { openGame, openPanel, openTab } from "./nav";
 import { MODES, filter, setCutoff, setMode, type Mode } from "./filter";
 import { setWholeScreen } from "./helper";
 import { progressSummary } from "./lab";
@@ -138,9 +138,9 @@ async function runTool(block: Block): Promise<Block> {
     }
     case "open_page": {
       const page = String(input.page ?? "home");
-      if (page === "profile") openPanel("progress");
+      if (page === "profile") openTab("progress");
       else if (page === "settings") openPanel("settings", "general");
-      else goHome();
+      else openTab("games");
       out = `Opened the ${page} page.`;
       break;
     }

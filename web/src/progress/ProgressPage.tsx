@@ -1,14 +1,14 @@
 import {
   Binoculars, Clock, Eyeglasses, Flame, Flask, GameController, Lock, Play, Sun, Trophy, type Icon,
 } from "@phosphor-icons/react";
-import { Sheet } from "../ui/Sheet";
 import { IconPlate } from "../ui/IconPlate";
 import { Orb } from "../ui/Orb";
 import { bestFilterDay, dateAgo, filterMinutesOn, longestStreak, playsByGame, resultsFor, streak, useLab } from "../lib/lab";
 import { HistoryChart } from "./HistoryChart";
 
-/** Progress: the numbers, a week of filter time, test history and badges. */
-export function ProgressPanel() {
+/** Home's My progress tab: the numbers, a week of filter time, test history,
+ * what eye tracking saw, and badges. Scrolls inside the tab; the bar stays put. */
+export function ProgressPage() {
   const data = useLab();
   const goal = data.settings.dailyGoalMin;
   const week = Array.from({ length: 7 }, (_, i) => {
@@ -40,7 +40,12 @@ export function ProgressPanel() {
   ];
 
   return (
-    <Sheet title="Progress" orb={["var(--color-orb-1)", "var(--color-orb-4)"]} wide>
+    <main id="main" role="tabpanel" aria-label="My progress" className="relative isolate min-h-0 flex-1 overflow-y-auto bg-canvas text-ink">
+      <Orb a="var(--color-orb-1)" b="var(--color-orb-4)" drift className="top-[-260px] right-[-120px] -z-10 h-[560px] w-[760px] opacity-60" />
+      <div className="mx-auto w-full max-w-[1280px] px-4 pt-6 pb-12 sm:px-8 lg:pt-8">
+      <h1 className="display mb-6 text-[clamp(2rem,4vw,3rem)] text-balance">
+        {data.settings.name}'s <span className="text-accent">progress</span>
+      </h1>
       <dl className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map(([label, value, I, a, b]) => (
           <div key={label} className="relative isolate flex min-h-36 flex-col justify-between gap-3 overflow-hidden rounded-card border border-hairline bg-card p-4">
@@ -52,7 +57,8 @@ export function ProgressPanel() {
         ))}
       </dl>
 
-      <section className="mb-4 rounded-card border border-hairline bg-card p-6">
+      <div className="grid gap-4 lg:grid-cols-2">
+      <section className="rounded-card border border-hairline bg-card p-6">
         <h3 className="text-[20px] font-medium">Filter time</h3>
         <p className="mt-1 text-[16px] text-muted">Last 7 days</p>
         <div
@@ -76,9 +82,10 @@ export function ProgressPanel() {
         </div>
       </section>
 
-      <div className="mb-4">
-        <HistoryChart />
+      <HistoryChart />
       </div>
+
+      <EyeSessions />
 
       <section className="rounded-card border border-hairline bg-card p-6">
         <h3 className="text-[20px] font-medium">Badges</h3>
@@ -104,6 +111,45 @@ export function ProgressPanel() {
           ))}
         </div>
       </section>
-    </Sheet>
+      </div>
+    </main>
+  );
+}
+
+/** Games played with eye tracking on, newest first. */
+function EyeSessions() {
+  const data = useLab();
+  const rows = data.sessions.filter((s) => s.eye).slice(-8).reverse();
+  return (
+    <section className="my-4 rounded-card border border-hairline bg-card p-6">
+      <h3 className="text-[20px] font-medium">Eye tracking</h3>
+      <p className="mt-1 text-[16px] text-muted">
+        {rows.length ? "Games played with eye tracking on" : "Turn on Eye tracking on the Games tab, and each game records the eyes."}
+      </p>
+      {rows.length > 0 && (
+        <div className="mt-4 overflow-x-auto">
+        <table className="w-full text-left text-[15px] tabular-nums">
+          <thead className="text-muted">
+            <tr className="border-b border-hairline">
+              <th className="py-2 pr-4 font-medium">Date</th>
+              <th className="py-2 pr-4 font-medium">Game</th>
+              <th className="py-2 pr-4 font-medium">Eyes seen</th>
+              <th className="py-2 font-medium">Back-and-forth movement</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((s, i) => (
+              <tr key={i} className="border-b border-hairline-soft last:border-0">
+                <td className="py-2 pr-4 whitespace-nowrap">{s.date}</td>
+                <td className="py-2 pr-4">{s.title}</td>
+                <td className="py-2 pr-4">{Math.round(s.eye!.tracked * 100)}% of {s.eye!.seconds} s</td>
+                <td className="py-2">{s.eye!.oscHz ? `${s.eye!.oscHz} per second, about ${s.eye!.oscPpDeg}°` : "None stood out"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        </div>
+      )}
+    </section>
   );
 }

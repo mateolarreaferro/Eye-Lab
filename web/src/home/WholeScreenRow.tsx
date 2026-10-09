@@ -7,8 +7,8 @@ import { IconPlate } from "../ui/IconPlate";
 import { Orb } from "../ui/Orb";
 
 /** The Whole screen card in Magic glasses: a switch for the macOS helper, with
- * what to do when it isn't installed or isn't allowed yet. Spans the rest of
- * the row so the install steps have room. */
+ * what to do when it isn't installed or isn't allowed yet. It closes the
+ * games row; the install steps scroll inside it when tall. */
 export function WholeScreenCard() {
   const { wholeScreen } = useFilter();
   const { status, error } = useHelper();
@@ -22,8 +22,8 @@ export function WholeScreenCard() {
   if (error) note = error;
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-card border border-hairline bg-card sm:col-span-1 lg:col-span-2">
-      <div className="relative isolate flex h-36 items-center justify-between overflow-hidden bg-band px-6">
+    <div className="flex w-full flex-col overflow-hidden rounded-card border border-hairline bg-card">
+      <div className="relative isolate flex h-36 shrink-0 items-center justify-between overflow-hidden bg-band px-6">
         <Orb a="var(--color-orb-3)" b="var(--color-orb-4)" className="inset-[-20%] -z-10 opacity-90" />
         <IconPlate icon={Monitor} size={56} onCard />
         <label className="flex items-center gap-3 rounded-full bg-card/80 py-1.5 pr-1.5 pl-4 text-[14px] font-medium backdrop-blur-sm">
@@ -31,7 +31,7 @@ export function WholeScreenCard() {
           <Switch on={wholeScreen} onChange={(on) => void setWholeScreen(on)} label="Whole screen filter" />
         </label>
       </div>
-      <div className="flex flex-1 flex-col p-5">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5">
         <span className="text-[19px] font-bold tracking-[-0.01em]">Whole screen</span>
         <span aria-live="polite" className="mt-1.5 max-w-[60ch] text-[15px] leading-relaxed text-body">
           {note}

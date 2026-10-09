@@ -1,11 +1,15 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, ArrowCounterClockwise, Check, House, Info, Play, Trophy } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowCounterClockwise, Check, DownloadSimple, House, Info, Play, Trophy } from "@phosphor-icons/react";
 import type { AnswerOption, Exercise, Summary } from "./Exercise";
 import { type GameDef, SECTION_HEX, sectionOf } from "../app/catalog";
 import { goHome, openGame } from "../lib/nav";
-import { logResult, recordSession } from "../lib/lab";
+import { type EyeSummary, lab, logResult, recordSession } from "../lib/lab";
+import {
+  OWNS_CAMERA, downloadCsv, fileStamp, finishSessionEyes, recordSessionEyes, startSessionEyes, stopSessionEyes,
+} from "../lib/sessionEyes";
+import { EyeChip, EyeCheck } from "./EyeCheck";
 import { play, sfxProps } from "../lib/sfx";
 import { IconPlate } from "../ui/IconPlate";
 import { Orb } from "../ui/Orb";
@@ -22,6 +26,17 @@ export function ExerciseShell({ game, stage }: { game: GameDef; stage: HTMLEleme
   const [ex, setEx] = useState<Exercise | null>(null);
   const [phase, setPhase] = useState<Phase>("loading");
   const [result, setResult] = useState<Summary | null>(null);
+  const [eyes, setEyes] = useState<{ summary: EyeSummary; csv: string } | null>(null);
+  // Eye tracking (the switch on Home) runs alongside any game that doesn't use the camera itself.
+  const [tracking] = useState(() => lab.get().settings.eyeTracking && !OWNS_CAMERA.has(game.key));
+
+  useEffect(() => {
+    if (!tracking) return;
+    startSessionEyes();
+    return () => {
+      stopSessionEyes();
+    };
+  }, [tracking]);
   const [, bump] = useReducer((n: number) => n + 1, 0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -51,7 +66,10 @@ export function ExerciseShell({ game, stage }: { game: GameDef; stage: HTMLEleme
 
   function finish(inst: Exercise) {
     const s = inst.summary();
-    if (inst.started && inst.id !== "calibrate") recordSession(inst.id, inst.title, inst.trophies);
+    const eye = tracking && inst.started ? finishSessionEyes() : null;
+    stopSessionEyes();
+    setEyes(eye);
+    if (inst.started && inst.id !== "calibrate") recordSession(inst.id, inst.title, inst.trophies, eye?.summary);
     if (s && s.value !== undefined) logResult(inst.id, inst.title, s.value, s.unit ?? "", s.detail ?? {});
     if (s?.text) {
       play("complete");
@@ -65,6 +83,7 @@ export function ExerciseShell({ game, stage }: { game: GameDef; stage: HTMLEleme
   function start() {
     if (!ex || ex.started) return;
     ex.started = true;
+    recordSessionEyes(tracking);
     setPhase("playing");
     ex.begin();
     bump();
@@ -186,6 +205,7 @@ export function ExerciseShell({ game, stage }: { game: GameDef; stage: HTMLEleme
             <Trophy size={20} weight="light" aria-hidden />
             {ex.trophies}
           </div>
+          {tracking && <EyeChip />}
           {ex.status && (
             <div aria-live="polite" className="pointer-events-none fixed bottom-4 left-4 z-30 max-w-[60vw] rounded-full bg-card/90 px-4 py-2 text-[14px] text-body tabular-nums">
               {ex.status}
@@ -218,6 +238,7 @@ export function ExerciseShell({ game, stage }: { game: GameDef; stage: HTMLEleme
                 </li>
               ))}
             </ol>
+            {tracking && <EyeCheck />}
             {ex.instructions && (
               <p className="mt-5 flex gap-3 text-[15px] leading-relaxed text-muted">
                 <Info size={20} weight="light" className="mt-0.5 shrink-0" aria-hidden />
@@ -243,7 +264,16 @@ export function ExerciseShell({ game, stage }: { game: GameDef; stage: HTMLEleme
               </p>
             )}
             <p className="border-t border-hairline pt-5 text-[17px] leading-relaxed whitespace-pre-line text-body">{result.text}</p>
+            {eyes && <p className="mt-5 border-t border-hairline pt-5 text-[17px] leading-relaxed text-body">{eyeText(eyes.summary)}</p>}
             <Actions>
+              {eyes && (
+                <GhostButton
+                  onClick={() => downloadCsv(eyes.csv, `eyelab-${ex.id}-eyes-${fileStamp()}.csv`)}
+                  icon={<DownloadSimple size={20} weight="bold" aria-hidden />}
+                >
+                  Save eye data
+                </GhostButton>
+              )}
               {ex.id !== "calibrate" && (
                 <GhostButton onClick={() => openGame(game)} icon={<ArrowCounterClockwise size={20} weight="bold" aria-hidden />}>
                   Play again
@@ -258,6 +288,14 @@ export function ExerciseShell({ game, stage }: { game: GameDef; stage: HTMLEleme
       </AnimatePresence>
     </>
   );
+}
+
+function eyeText(e: EyeSummary) {
+  const seen = `Eye tracking saw the eyes in ${Math.round(e.tracked * 100)}% of ${e.seconds} seconds.`;
+  if (e.tracked < 0.5) return `${seen} Too little to measure; check the light and the camera angle next time.`;
+  return e.oscHz
+    ? `${seen} A regular back-and-forth movement stood out: about ${e.oscHz} times a second, roughly ${e.oscPpDeg}° side to side.`
+    : `${seen} No regular back-and-forth movement stood out.`;
 }
 
 /** A quiet full-screen page: a soft orb in the section's colours behind the

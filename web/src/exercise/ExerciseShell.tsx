@@ -209,7 +209,7 @@ export function ExerciseShell({ game, stage }: { game: GameDef; stage: HTMLEleme
 
       <AnimatePresence>
         {ex && phase === "intro" && (
-          <Card key="intro" game={game} kicker="How to play" title={ex.title}>
+          <Card key="intro" game={game} title={ex.title}>
             <ol className="divide-y divide-hairline border-y border-hairline">
               {ex.steps.map((s, i) => (
                 <li key={i} className="flex items-start gap-4 py-4">
@@ -235,7 +235,7 @@ export function ExerciseShell({ game, stage }: { game: GameDef; stage: HTMLEleme
           </Card>
         )}
         {ex && phase === "result" && result && (
-          <Card key="result" game={game} kicker={ex.trophies > 0 ? "Well done" : "All done"} title={ex.title}>
+          <Card key="result" game={game} title={ex.title}>
             {ex.id !== "calibrate" && (
               <p className="mb-5 flex items-center gap-3 text-[20px] font-medium">
                 <Trophy size={26} weight="light" aria-hidden />
@@ -261,15 +261,15 @@ export function ExerciseShell({ game, stage }: { game: GameDef; stage: HTMLEleme
 }
 
 /** A quiet full-screen page: a soft orb in the section's colours behind the
- * game's icon, a small label, the title, then the content.
+ * game's icon, the title, then the content.
  * Fades in; nothing slides across the screen. */
-function Card({ game, kicker, title, children }: { game: GameDef; kicker: string; title: string; children: React.ReactNode }) {
+function Card({ game, title, children }: { game: GameDef; title: string; children: React.ReactNode }) {
   const section = sectionOf(game);
   return (
     <motion.div
       role="dialog"
       aria-modal="true"
-      aria-label={`${kicker}: ${title}`}
+      aria-label={title}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -285,8 +285,7 @@ function Card({ game, kicker, title, children }: { game: GameDef; kicker: string
       >
         <div className="flex flex-col items-center text-center">
           <IconPlate icon={game.icon} size={72} onCard />
-          <p className="label mt-8">{kicker}</p>
-          <h1 className="display mt-3 mb-10 text-[clamp(2.5rem,6vw,3.75rem)] text-balance">{title}</h1>
+          <h1 className="display mt-8 mb-10 text-[clamp(2.5rem,6vw,3.75rem)] text-balance">{title}</h1>
         </div>
         {children}
       </motion.div>

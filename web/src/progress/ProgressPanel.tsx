@@ -54,7 +54,7 @@ export function ProgressPanel() {
 
       <section className="mb-4 rounded-card border border-hairline bg-card p-6">
         <h3 className="text-[20px] font-medium">Filter time</h3>
-        <p className="mt-1 text-[16px] text-muted">Minutes with a filter on, last 7 days. Goal {goal} minutes a day.</p>
+        <p className="mt-1 text-[16px] text-muted">Last 7 days</p>
         <div
           className="mt-5 flex h-44 items-end gap-2"
           role="img"

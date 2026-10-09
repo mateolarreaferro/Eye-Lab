@@ -16,7 +16,6 @@ export function HistoryChart() {
       <div className="flex flex-col items-center rounded-card border border-hairline bg-card p-10 text-center">
         <ChartLineUp size={36} weight="light" className="text-muted-soft" aria-hidden />
         <p className="mt-3 text-[19px] font-medium">No results yet</p>
-        <p className="mt-1 max-w-[36ch] text-[16px] text-muted">Finish a test from the eye check-up and your results show up here.</p>
       </div>
     );
   }

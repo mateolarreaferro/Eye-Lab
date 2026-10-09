@@ -99,7 +99,7 @@ function General() {
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
   return (
     <>
-      <Group title="Viewing setup" note="Tests show things at a true size for the eye, so these should match how the player sits.">
+      <Group title="Viewing setup">
         <Row label="Distance from eyes to screen">
           <Stepper
             what="distance"
@@ -186,8 +186,7 @@ function Filters() {
         <ParamSlider label="Cutoff" k="lp_lod" value={params.lp_lod} />
         <ParamSlider label="Strength" k="lp_mix" value={params.lp_mix} step={0.05} fmt={(v) => `${Math.round(v * 100)}%`} />
       </Group>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-[40ch] text-[15px] leading-snug text-muted">Changes apply right away, in the page and on the whole screen. Turn a filter on to see them.</p>
+      <div className="flex justify-end">
         <button
           {...sfxProps}
           onClick={resetParams}
@@ -255,7 +254,7 @@ function IrisKey() {
   return (
     <Group
       title="Claude API key"
-      note="Iris runs on Claude. Paste a key from your Anthropic account to chat with her. It stays in this browser and is sent with each chat request to the Eye Lab server, which uses it for that request only and never stores it."
+      note="Paste a Claude API key to chat with Iris. It stays in this browser."
     >
       <label className="flex flex-col gap-2">
         <span className="flex items-center gap-2 text-[16px] font-medium">

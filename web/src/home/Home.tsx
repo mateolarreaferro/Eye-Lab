@@ -25,8 +25,7 @@ export function Home() {
         <Orb a="var(--color-orb-1)" b="var(--color-orb-5)" drift className="top-[-30%] right-[-10%] -z-10 h-[680px] w-[760px] opacity-80" />
         <div className="mx-auto grid max-w-[1200px] items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1.25fr_1fr] lg:px-12 lg:py-24">
           <div>
-            <p className="label">Eye Lab, for Project Prakash</p>
-            <h1 className="display mt-5 text-[clamp(2.6rem,5.5vw,4.25rem)]">
+            <h1 className="display text-[clamp(2.6rem,5.5vw,4.25rem)]">
               {name ? (
                 <>
                   Hello, <span className="text-accent">{name}</span>.
@@ -39,15 +38,9 @@ export function Home() {
                 </>
               )}
             </h1>
-            <p className="mt-6 max-w-[44ch] text-[19px] leading-relaxed text-body">
-              <span className="font-semibold text-ink">Gentle games for growing sight.</span> Measure and train how you see, and try the filters that change what you see.
-            </p>
             <div className="mt-9 flex flex-wrap gap-3">
               <PillButton primary onClick={() => openGame(gameByKey("acuity")!)}>
                 Start with the eye check-up
-              </PillButton>
-              <PillButton onClick={() => document.getElementById("games")?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })}>
-                See all games
               </PillButton>
             </div>
           </div>
@@ -102,12 +95,9 @@ function SectionBlock({ section }: { section: Section }) {
   const games = GAMES.filter((g) => g.section === section.key);
   return (
     <section aria-labelledby={`sec-${section.key}`}>
-      <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <h2 id={`sec-${section.key}`} className="display text-[34px]">
-          {section.name}
-        </h2>
-        <p className="text-[16px] text-muted">{section.tag}</p>
-      </div>
+      <h2 id={`sec-${section.key}`} className="display mb-8 text-[34px]">
+        {section.name}
+      </h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {games.map((g) => (
           <GameCard key={g.key} game={g} section={section} />

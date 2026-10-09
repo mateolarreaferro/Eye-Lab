@@ -12,9 +12,9 @@ Vision games, tests and spatial-frequency filters for the Sinha lab. Repo: githu
 
 ## Web app (`web/`)
 
-- Layers in `app/App.tsx`: the **stage** (Home, or a game's canvas) sits inside the vision filter; the
-  **chrome** (filter bar, a game's Home/trophies/answers/cards) and the side panels sit outside it so
-  they stay readable. A game draws its canvas into the stage through a portal (`exercise/ExerciseShell.tsx`).
+- Layers in `app/App.tsx`: the **stage** (Home with its top bar, or a game's canvas) sits inside the
+  vision filter; the user wants the header filtered too. A game's **chrome** (its floating filter bar,
+  Home/trophies/answers/cards) and the side panels sit outside it so they stay readable. A game draws its canvas into the stage through a portal (`exercise/ExerciseShell.tsx`).
 - Games extend `exercise/Exercise.ts`, a deliberate mirror of the Godot base class (setup/begin/draw/
   tick/onAnswer/onPointer/onKey/summary; setAnswers/feedback/after/end), so each `exercises/*.ts` stays
   comparable line by line with its `eye_lab/exercises/*.gd` original. Keys in `app/catalog.ts` must match

@@ -108,6 +108,16 @@ button {
   outline: 2px solid var(--color-ink);
   outline-offset: 3px;
 }
+/* Sliders show focus on the knob, not as a box around the track. */
+input[type="range"].slider:focus-visible {
+  outline: none;
+}
+input[type="range"].slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px var(--color-card), 0 0 0 5px var(--color-ink);
+}
+input[type="range"].slider:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px var(--color-card), 0 0 0 5px var(--color-ink);
+}
 /* Text fields draw their own focus border. */
 input:not([type="range"]):focus-visible,
 select:focus-visible,

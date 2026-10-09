@@ -12,54 +12,71 @@ import { sfxProps } from "../lib/sfx";
 
 const LABELS = ["No filter", "High-pass", "Low-pass"];
 
-export function FilterControl() {
+/** No filter, high-pass or low-pass. */
+export function FilterModes() {
+  const { mode } = useFilter();
+  return (
+    <div role="radiogroup" aria-label="Filter" className="flex shrink-0 rounded-full bg-strong p-1">
+      {LABELS.map((name, i) => {
+        const on = mode === i;
+        return (
+          <button
+            key={name}
+            {...sfxProps}
+            role="radio"
+            aria-checked={on}
+            title={MODE_TIPS[i]}
+            onClick={() => setMode(i as Mode)}
+            className={`h-8 rounded-full px-3.5 text-[14px] font-medium whitespace-nowrap transition-colors duration-200 ${
+              on ? "bg-card text-ink shadow-[0_1px_2px_rgb(0_0_0/0.08)]" : "text-muted hover:text-ink"
+            }`}
+          >
+            {name}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** The current filter's cutoff, coarse to fine, with its value in cycles per
+ * degree. Nothing when no filter is on. */
+export function CutoffSlider({ width = "w-28" }: { width?: string }) {
   const { mode, params, wholeScreen } = useFilter();
   useLab(); // the cycles-per-degree label depends on distance and calibration
+  if (mode === 0) return null;
   const lod = params[lodKey(mode)];
+  return (
+    <div className="flex items-center gap-5">
+      <label className="flex items-center gap-3 text-[14px] text-muted">
+        Coarse
+        <input
+          type="range"
+          className={`slider ${width}`}
+          min={0.5}
+          max={7}
+          step={0.25}
+          value={7.5 - lod}
+          style={{ ["--fill" as string]: `${((7 - lod) / 6.5) * 100}%` }}
+          onChange={(e) => setCutoff(7.5 - Number(e.target.value))}
+          aria-label="Cutoff, coarse to fine"
+          aria-valuetext={`${lodToCpd(lod).toFixed(1)} cycles per degree`}
+          title="Which detail sizes the filter splits at. More options in Settings, Filters."
+        />
+        Fine
+        <span className="w-16 whitespace-nowrap tabular-nums">{lodToCpd(lod).toFixed(1)}&nbsp;c/°</span>
+      </label>
+      {wholeScreen && <span className="label !text-ink">Whole screen on</span>}
+    </div>
+  );
+}
 
+/** Modes and cutoff together, for the in-game bar. */
+export function FilterControl() {
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-      <div role="radiogroup" aria-label="Filter" className="flex rounded-full bg-strong p-1">
-        {LABELS.map((name, i) => {
-          const on = mode === i;
-          return (
-            <button
-              key={name}
-              {...sfxProps}
-              role="radio"
-              aria-checked={on}
-              title={MODE_TIPS[i]}
-              onClick={() => setMode(i as Mode)}
-              className={`h-8 rounded-full px-3.5 text-[14px] font-medium transition-colors duration-200 ${
-                on ? "bg-card text-ink shadow-[0_1px_2px_rgb(0_0_0/0.08)]" : "text-muted hover:text-ink"
-              }`}
-            >
-              {name}
-            </button>
-          );
-        })}
-      </div>
-      {mode !== 0 && (
-        <label className="flex items-center gap-3 text-[14px] text-muted">
-          Coarse
-          <input
-            type="range"
-            className="slider w-28"
-            min={0.5}
-            max={7}
-            step={0.25}
-            value={7.5 - lod}
-            style={{ ["--fill" as string]: `${((7 - lod) / 6.5) * 100}%` }}
-            onChange={(e) => setCutoff(7.5 - Number(e.target.value))}
-            aria-label="Cutoff, coarse to fine"
-            aria-valuetext={`${lodToCpd(lod).toFixed(1)} cycles per degree`}
-            title="Which detail sizes the filter splits at. More options in Settings, Filters."
-          />
-          Fine
-          <span className="w-16 whitespace-nowrap tabular-nums">{lodToCpd(lod).toFixed(1)}&nbsp;c/°</span>
-        </label>
-      )}
-      {wholeScreen && <span className="label !text-ink">Whole screen on</span>}
+      <FilterModes />
+      <CutoffSlider />
     </div>
   );
 }

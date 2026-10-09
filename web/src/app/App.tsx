@@ -16,8 +16,8 @@ import { ProgressPanel } from "../progress/ProgressPanel";
 
 /*
   Layers, bottom to top:
-  1. The stage: Home or the running game's canvas, inside the vision filter.
-  2. Chrome: the top bar on Home, or the filter bar and a game's controls; never filtered.
+  1. The stage: Home with its top bar, or the running game's canvas, inside the vision filter.
+  2. Chrome: a game's controls and its floating filter bar; never filtered.
   3. Panels: Settings, Progress and Iris, sliding in from the right.
   With Whole screen on, the helper filters everything, so the stage filter is off.
 */
@@ -49,8 +49,8 @@ export function App() {
   return (
     <MotionConfig reducedMotion="user">
       <FilterDefs />
-      {!game && <TopBar />}
       <div ref={setStage} className="min-h-dvh" style={{ filter: filtering ? `url(#${FILTER_ID})` : undefined }}>
+        {!game && <TopBar />}
         {!game && <Home />}
       </div>
       {game && stage && <ExerciseShell key={run} game={game} stage={stage} />}
